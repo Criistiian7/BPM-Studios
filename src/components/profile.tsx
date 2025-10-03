@@ -82,14 +82,32 @@ function Profile() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    console.log(name, value);
-    setTempProfile((prevProfile) => {
-      if (prevProfile) {
-        console.log(prevProfile);
-        return { ...prevProfile, [name as keyof UserProfile]: value };
-      }
-      return prevProfile;
-    });
+
+    if (name.includes(".")) {
+      const keys = name.split("."); // ex: ['socialLinks', 'facebook']
+      setTempProfile((prev) => {
+        const newProfile = { ...prev };
+        let target = newProfile;
+
+        for (let i = 0; i < keys.length - 1; i++) {
+          // dacă nu există deja, poți adăuga: target[keys[i]] = target[keys[i]] || {};
+          target[keys[i]] = { ...target[keys[i]] }; // clone obiect
+          target = target[keys[i]];
+        }
+
+        target[keys[keys.length - 1]] = value; // actualizează câmpul final
+        return newProfile;
+      });
+    } else {
+      setTempProfile((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const normalizeUrl = (url: string) => {
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
+    }
+    return `https://${url}`;
   };
 
   if (loading) {
@@ -133,22 +151,31 @@ function Profile() {
                 {/* Afișarea link-urilor social media */}
                 <h4>Link-uri Social Media</h4>
                 <p>
-                  <a href={profile.socialLinks.facebook || "#"} target="_blank">
+                  <a
+                    href={normalizeUrl(profile.socialLinks.facebook || "#")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <FaFacebook />
                     Facebook
                   </a>
                 </p>
                 <p>
                   <a
-                    href={profile.socialLinks.instagram || "#"}
+                    href={normalizeUrl(profile.socialLinks.instagram || "#")}
                     target="_blank"
+                    rel="noopener noreferrer"
                   >
                     <FaInstagram />
                     Instagram
                   </a>
                 </p>
                 <p>
-                  <a href={profile.socialLinks.youtube || "#"} target="_blank">
+                  <a
+                    href={normalizeUrl(profile.socialLinks.youtube || "#")}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
                     <FaYoutube />
                     Youtube
                   </a>
@@ -191,6 +218,16 @@ function Profile() {
                 </Form.Group>
 
                 <Form.Group className="mb-3">
+                  <Form.Label>Locatie</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="location"
+                    value={tempProfile?.location || ""}
+                    onChange={handleChange}
+                  />
+                </Form.Group>
+
+                <Form.Group className="mb-3">
                   <Form.Label>Facebook</Form.Label>
                   <Form.Control
                     type="text"
@@ -204,7 +241,7 @@ function Profile() {
                   <Form.Label>Instagram</Form.Label>
                   <Form.Control
                     type="text"
-                    name="instagram"
+                    name="socialLinks.instagram"
                     value={tempProfile?.socialLinks?.instagram ?? ""}
                     onChange={handleChange}
                   />
@@ -214,7 +251,7 @@ function Profile() {
                   <Form.Label>Youtube</Form.Label>
                   <Form.Control
                     type="text"
-                    name="youtube"
+                    name="socialLinks.youtube"
                     value={tempProfile?.socialLinks?.youtube ?? ""}
                     onChange={handleChange}
                   />
