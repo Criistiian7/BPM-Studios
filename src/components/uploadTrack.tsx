@@ -26,12 +26,28 @@ function UploadTrack() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState(false); 
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setAudioFile(e.target.files[0]);
     }
-  };
+
+  if (!file.type.startsWith('audio/')) {
+    setUploadError('Please upload an audio file.');
+    setAudioFile(null);
+    return;
+  }
+  
+  if (file.size > 10 * 1024 * 1024) {
+    setUploadError('File size must be less than 10MB.');
+    setAudioFile(null);
+    return;
+  }
+ 
+  setAudioFile(file);
+  setUploadError(null);
+};
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +55,7 @@ function UploadTrack() {
 
     setUploading(true);
     setUploadError(null);
+    setUploadSuccess(false);
     setUploadProgress(0);
 
     try {
@@ -77,6 +94,7 @@ function UploadTrack() {
           setAudioFile(null);
           setUploading(false);
           setUploadProgress(0);
+          setUploadSuccess(true); 
           alert("Track uploaded successfully");
         }
       );
@@ -84,6 +102,7 @@ function UploadTrack() {
       console.error("Error uploading track", error);
       alert("Error uploading track" + error.message);
       setUploading(false);
+      setUploadProgress(0);
     }
   };
 
