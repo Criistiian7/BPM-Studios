@@ -1,8 +1,11 @@
 import React from "react";
-import { Container, Navbar, Nav } from "react-bootstrap";
 import { Link, Navigate, useLocation } from "react-router-dom";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../firebase";
+import Dashboard from "./dashboard";
+import Profile from "./profile";
+import Login from "./login";
+import Register from "./register";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -29,43 +32,78 @@ function Layout({ children }: LayoutProps) {
     return <Navigate to="/login" />;
   }
   return (
-    <div>
-      <Navbar bg="light" expand="lg">
-        <Container>
-          <Navbar.Brand as={Link} to="/">
+    <div className="flex flex-col h-screen bg-gray-100">
+      <nav className="bg-white shadow">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <Link to="/" className="text-2xl font-bold text-gray-800">
             BeatPlanner
-          </Navbar.Brand>
-          {/* <Navbar.Toggle aria-controls="basic-navbar-nav" /> */}
-          <Navbar.Collapse id="basic-navbar-nav">
-            <Nav className="me-auto">
-              <Nav.Link as={Link} to="/dashboard">
-                Dashboard
-              </Nav.Link>
-              <Nav.Link as={Link} to="/profile">
-                Profile
-              </Nav.Link>
-            </Nav>
-            <Nav>
-              {user ? (
-                <Nav.Link onClick={handleLogout}>Logout</Nav.Link>
-              ) : (
-                <>
-                  <Nav.Link as={Link} to="/login">
+          </Link>
+          <ul className="flex items-center space-x-6">
+            {user ? (
+              <>
+                <li>
+                  <Link
+                    to="/dashboard"
+                    className="text-gray-600 hover:text-gray-800"
+                  >
+                    Dashboard
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/community"
+                    className="text-gray-600 hover:text-gray-800"
+                  >
+                    Community
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/profile"
+                    className="text-gray-600 hover:text-gray-800"
+                  >
+                    Profile
+                  </Link>
+                </li>
+                <li>
+                  <button
+                    onClick={handleLogout}
+                    className="text-red-500 hover:text-red-700"
+                  >
+                    Logout
+                  </button>
+                </li>
+              </>
+            ) : (
+              <>
+                <li>
+                  <Link
+                    to="/login"
+                    className="text-gray-600 hover:text-gray-800"
+                  >
                     Login
-                  </Nav.Link>
-                  <Nav.Link as={Link} to="/register">
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/register"
+                    className="text-gray-600 hover:text-gray-800"
+                  >
                     Register
-                  </Nav.Link>
-                </>
-              )}
-            </Nav>
-          </Navbar.Collapse>
-        </Container>
-      </Navbar>
-      <Container className="mt-4">{children}</Container>
+                  </Link>
+                </li>
+              </>
+            )}
+          </ul>
+        </div>
+      </nav>
 
-      <footer className="text-center py-3">
-        <p>&copy; {new Date().getFullYear()} BeatPlanner</p>
+      <main className="container mx-auto mt-4 flex-grow">{children}</main>
+
+      <footer className="bg-gray-100 text-center py-4">
+        <p className="text-sm text-gray-500">
+          &copy; {new Date().getFullYear()} BeatPlanner
+        </p>
       </footer>
     </div>
   );

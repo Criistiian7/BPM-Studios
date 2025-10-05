@@ -1,7 +1,8 @@
-// src/firebase.js
+// src/firebase.ts
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 // Config-ul tău de la Firebase Console
 const firebaseConfig = {
@@ -20,4 +21,6 @@ const app = initializeApp(firebaseConfig);
 // Servicii Firebase pe care le vei folosi
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const firestore = getFirestore(app);
+export const storage = getStorage(app);
 export default app;
