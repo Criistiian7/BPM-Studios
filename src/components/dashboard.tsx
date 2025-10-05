@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { Container, Card, Button, Table } from "react-bootstrap";
 import UploadTrack from "./uploadTrack";
 import { auth, db } from "../firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
@@ -34,59 +33,56 @@ function Dashboard() {
   };
 
   return (
-    <Container>
-      <h2>Dashboard</h2>
-      <Card className="mt-4">
-        <Card.Body>
-          <Card.Title>Upload New Track</Card.Title>
-        </Card.Body>
-      </Card>
+    <div className="container mx-auto">
+      <h2 className="text-2xl font-bold mb-4">Dashboard</h2>
+      <div className="bg-white shadow-md rounded p-4 mb-4">
+        <h3 className="text-xl font-semibold mb-2">Upload New Track</h3>7
+        <UploadTrack />
+      </div>
 
-      <Card className="mt-4">
-        <Card.Body>
-          <Card.Title>My Tracks</Card.Title>
-          <Table striped bordered hover>
-            <thead>
-              <tr>
-                <th>Title</th>
-                <th>Genre</th>
-                <th>Status</th>
-                <th>Actions</th>
+      <div className="bg-white shadow-md rounded p-4">
+        <h3 className="text-xl font-semibold mb-2">My Tracks</h3>
+        <table className="table-auto w--full">
+          <thead>
+            <tr className="text-left">
+              <th className="px-4 py-2">Title</th>
+              <th className="px-4 py-2">Genre</th>
+              <th className="px-4 py-2">Status</th>
+              <th className="px-4 py-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {tracks.map((track) => (
+              <tr key={track.id}>
+                <td className="border px-4 py-2">{track.title}</td>
+                <td className="border px-4 py-2">{track.genre}</td>
+                <td className="border px-4 py-2">{track.status}</td>
+                <td className="border px-4 py-2">
+                  <button
+                    className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+                    onClick={() => handlePlayTrack}
+                  >
+                    Play
+                  </button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {tracks.map((track) => (
-                <tr key={track.id}>
-                  <td>{track.title}</td>
-                  <td>{track.genre}</td>
-                  <td>{track.status}</td>
-                  <td>
-                    <Button
-                      variant="primary"
-                      onClick={() => handlePlayTrack(track)}
-                    >
-                      Play
-                    </Button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </Card.Body>
-      </Card>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
       {currentTrack && (
-        <Card className="mt-4">
-          <Card.Body>
-            <Card.Title>Now Playing: {currentTrack.title}</Card.Title>
-            <AudioPlayer
-              src={currentTrack.audioURL}
-              onPlay={() => console.log("onPlay")}
-            />
-          </Card.Body>
-        </Card>
+        <div className="bg-white shadow-md rounded p-4 mt-4">
+          <h3 className="text-xl font-semibold mb-2">
+            Now Playing: {currentTrack.title}
+          </h3>
+          <AudioPlayer
+            src={currentTrack.audioURL}
+            onPlay={() => console.log("onPlay")}
+          />
+        </div>
       )}
-    </Container>
+    </div>
   );
 }
 

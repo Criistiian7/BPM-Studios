@@ -1,17 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { auth, db } from "../firebase";
 import { useAuthState } from "react-firebase-hooks/auth";
-import {
-  Container,
-  Card,
-  Button,
-  Form,
-  CardBody,
-  CardSubtitle,
-  CardTitle,
-} from "react-bootstrap";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { type UserProfile } from "../types/user";
+import type { UserProfile } from "../types/user";
 import { FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
 
 function Profile() {
@@ -101,137 +92,194 @@ function Profile() {
   }
 
   return (
-    <Container>
-      <h2>Profile</h2>
+    <div className="container mx-auto">
+      <h2 className="text-2xl font-bold mb-4">Profile</h2>
       {profile && (
-        <Card>
-          <CardBody>
-            {!isEditing ? (
-              <>
-                <CardTitle>{profile.displayName || "N/A"}</CardTitle>
-                <CardSubtitle className="mb-2 text-muted">
-                  {profile.email || "N/A"}
-                </CardSubtitle>
-                <Card.Text>
-                  {profile.description || "No description yet"}
-                </Card.Text>
-                {/*Showing of personal information*/}
-                <h4>Informații Personale</h4>
-                <p>Locatie:{profile.location || "N/A"}</p>
-                <p>Telefon:{profile.phoneNumber || "N/A"}</p>
-                <p>Membru din:{profile.memberSince || "N/A"}</p>
+        <div className="bg-white shadow-md rounded p-4">
+          {!isEditing ? (
+            <>
+              <h3 className="text-xl font-semibold mb-2">
+                {profile.displayName || "N/A"}
+              </h3>
+              <h4 className="text-gray-600 mb-2">{profile.email || "N/A"}</h4>
+              <p className="text-gray-700">
+                {profile.description || "No description yet"}
+              </p>
 
-                {/*Showing of rating and statistics*/}
-                <h4>Rating si Statistici</h4>
-                <p>Rating: {profile.rating || 0}</p>
-                <p>Piese incarcate: {profile.statistics.tracksUploaded || 0}</p>
-                <p>
-                  Proiecte finalizate:{" "}
-                  {profile.statistics.projectsCompleted || 0}
-                </p>
+              {/* Afisarea informatiilor personale */}
+              <h4 className="text-lg font-semibold mt-4">
+                Informații Personale
+              </h4>
+              <p>Locatie:{profile.location || "N/A"}</p>
+              <p>Telefon:{profile.phoneNumber || "N/A"}</p>
+              <p>Membru din:{profile.memberSince || "N/A"}</p>
 
-                {/* Afișarea link-urilor social media */}
-                <h4>Link-uri Social Media</h4>
-                <p>
-                  <a href={profile.socialLinks.facebook || "#"} target="_blank">
-                    <FaFacebook />
-                    Facebook
-                  </a>
-                </p>
-                <p>
-                  <a
-                    href={profile.socialLinks.instagram || "#"}
-                    target="_blank"
-                  >
-                    <FaInstagram />
-                    Instagram
-                  </a>
-                </p>
-                <p>
-                  <a href={profile.socialLinks.youtube || "#"} target="_blank">
-                    <FaYoutube />
-                    Youtube
-                  </a>
-                </p>
+              {/* Afisarea de rating si statistici */}
+              <h4 className="text-lg font-semibold mt-4">
+                Rating si Statistici
+              </h4>
+              <p>Rating:{profile.rating || 0}</p>
+              <p>Piese incarcate: {profile.statistics.tracksUploaded || 0}</p>
 
-                <Button variant="primary" onClick={handleEditClick}>
-                  Editează
-                </Button>
-              </>
-            ) : (
-              <Form>
-                <Form.Group className="mb-3">
-                  <Form.Label>Nume</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="displayName"
-                    value={tempProfile?.displayName || ""}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
+              {/* Afisarea link-urilor social media */}
+              <h4 className="text-lg font-semibold mt-4">
+                Link-uri Social Media
+              </h4>
+              <p>
+                <a
+                  href={profile?.socialLinks?.facebook || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:text-blue-700"
+                >
+                  <FaFacebook className="inline mr-1" />
+                  Facebook
+                </a>
+              </p>
+              <p>
+                <a
+                  href={profile?.socialLinks?.instagram || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:text-blue-700"
+                >
+                  <FaInstagram className="inline mr-1" />
+                  Instagram
+                </a>
+              </p>
+              <p>
+                <a
+                  href={profile?.socialLinks?.youtube || "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:text-blue-700"
+                >
+                  <FaYoutube className="inline mr-1" />
+                  Youtube
+                </a>
+              </p>
 
-                <Form.Group className="mb-3">
-                  <Form.Label>Descriere</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    name="description"
-                    value={tempProfile?.description || ""}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
+              <button
+                className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-4"
+                onClick={handleEditClick}
+              >
+                Editează
+              </button>
+            </>
+          ) : (
+            <form onSubmit={handleSaveClick}>
+              <div className="mb-4">
+                <label
+                  className="block text-gray-700 text-sm font-bold mb-2"
+                  htmlFor="displayName"
+                >
+                  Nume
+                </label>
+                <input
+                  type="text"
+                  id="displayName"
+                  name="displayName"
+                  value={tempProfile?.displayName || ""}
+                  onChange={handleChange}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                />
+              </div>
 
-                <Form.Group className="mb-3">
-                  <Form.Label>Telefon</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="phoneNumber"
-                    value={tempProfile?.phoneNumber || ""}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
+              <div className="mb-4">
+                <label
+                  className="block text-gray-700 text-sm font-bold mb-2"
+                  htmlFor="description"
+                >
+                  Descriere
+                </label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={tempProfile?.description || ""}
+                  onChange={handleChange}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                />
+              </div>
 
-                <Form.Group className="mb-3">
-                  <Form.Label>Facebook</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="socialLinks.facebook"
-                    value={tempProfile?.socialLinks?.facebook ?? ""}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
+              <div className="mb-4">
+                <label
+                  className="block text-gray-700 text-sm font-bold mb-2"
+                  htmlFor="phoneNumber"
+                >
+                  Telefon
+                </label>
+                <input
+                  type="text"
+                  id="phoneNumber"
+                  name="phoneNumber"
+                  value={tempProfile?.phoneNumber || ""}
+                  onChange={handleChange}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                />
+              </div>
 
-                <Form.Group className="mb-3">
-                  <Form.Label>Instagram</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="instagram"
-                    value={tempProfile?.socialLinks?.instagram ?? ""}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Facebook
+                </label>
+                <input
+                  type="text"
+                  id="facebook"
+                  name="facebook"
+                  value={tempProfile?.socialLinks.facebook || ""}
+                  onChange={handleChange}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                />
+              </div>
 
-                <Form.Group className="mb-3">
-                  <Form.Label>Youtube</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="youtube"
-                    value={tempProfile?.socialLinks?.youtube ?? ""}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Instagram
+                </label>
+                <input
+                  type="text"
+                  id="instagram"
+                  name="instagram"
+                  value={tempProfile?.socialLinks.instagram || ""}
+                  onChange={handleChange}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                />
+              </div>
 
-                <Button variant="success" onClick={handleSaveClick}>
+              <div className="mb-4">
+                <label className="block text-gray-700 text-sm font-bold mb-2">
+                  Youtube
+                </label>
+                <input
+                  type="text"
+                  id="youtube"
+                  name="youtube"
+                  value={tempProfile?.socialLinks.youtube || ""}
+                  onChange={handleChange}
+                  className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                />
+              </div>
+
+              <div className="flex justify-between">
+                <button
+                  type="submit"
+                  className="bg-green-500 hove:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                >
                   Salvare
-                </Button>
-                <Button variant="secondary" onClick={handleCancelClick}>
+                </button>
+                <button
+                  type="button"
+                  className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
+                  onClick={handleCancelClick}
+                >
                   Anulare
-                </Button>
-              </Form>
-            )}
-          </CardBody>
-        </Card>
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       )}
-    </Container>
+    </div>
   );
 }
 

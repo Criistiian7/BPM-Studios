@@ -12,7 +12,7 @@ import Profile from "./components/profile";
 import Layout from "./components/layout";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "./firebase";
-import { Nav } from "react-bootstrap";
+import Community from "./components/community";
 
 function App() {
   const [user, loading, error] = useAuthState(auth);
@@ -39,6 +39,7 @@ function App() {
               <Routes>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/profile" element={<Profile />} />
+                <Route path="/community" element={<Community />} />
               </Routes>
             </Layout>
           }
