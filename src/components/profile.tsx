@@ -73,14 +73,32 @@ function Profile() {
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    console.log(name, value);
-    setTempProfile((prevProfile) => {
-      if (prevProfile) {
-        console.log(prevProfile);
-        return { ...prevProfile, [name as keyof UserProfile]: value };
-      }
-      return prevProfile;
-    });
+
+    if (name.includes(".")) {
+      const keys = name.split("."); // ex: ['socialLinks', 'facebook']
+      setTempProfile((prev) => {
+        const newProfile = { ...prev };
+        let target = newProfile;
+
+        for (let i = 0; i < keys.length - 1; i++) {
+          // dacă nu există deja, poți adăuga: target[keys[i]] = target[keys[i]] || {};
+          target[keys[i]] = { ...target[keys[i]] }; // clone obiect
+          target = target[keys[i]];
+        }
+
+        target[keys[keys.length - 1]] = value; // actualizează câmpul final
+        return newProfile;
+      });
+    } else {
+      setTempProfile((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const normalizeUrl = (url: string) => {
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return url;
+    }
+    return `https://${url}`;
   };
 
   if (loading) {
