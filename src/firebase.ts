@@ -6,13 +6,13 @@ import { getStorage } from "firebase/storage";
 
 // Config-ul tău de la Firebase Console
 const firebaseConfig = {
-  apiKey: "AIzaSyBjEHvgJeCskolAxl--1gzkH-7nMDouTCE",
-  authDomain: "beatplanner-b1ec8.firebaseapp.com",
-  projectId: "beatplanner-b1ec8",
-  storageBucket: "beatplanner-b1ec8.firebasestorage.app",
-  messagingSenderId: "900260228309",
-  appId: "1:900260228309:web:8779f7d22ea2d93cd7465c",
-  measurementId: "G-0Z6MX7SPX1",
+  apiKey: import.meta.env.API_KEY,
+  authDomain: import.meta.env.AUTH_DOMAIN,
+  projectId: import.meta.env.PROJECT_ID,
+  storageBucket: import.meta.env.STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.MESSAGING_SENDER_ID,
+  appId: import.meta.env.APP_ID,
+  measurementId: import.meta.env.MEASUREMENT_ID,
 };
 
 // Initialize Firebase
