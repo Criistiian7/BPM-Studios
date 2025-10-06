@@ -2,11 +2,15 @@ import React, { useState, useEffect } from "react";
 import { db } from "../firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import type { UserProfile } from "../types/user";
+import { FaMapMarkerAlt, FaMicrophone } from 'react-icons/fa';
+import UserProfileDetails from './user-profile-details';
+
 
 function Community() {
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [genreFilter, setGenreFilter] = useState("");
+  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     const fetchUsers = async () => {
@@ -35,6 +39,14 @@ function Community() {
 
   const handleGenreFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setGenreFilter(e.target.value);
+  };
+
+  const handleUserClick = (user: UserProfile) => {
+    setSelectedUser(user);
+  }; 
+
+  const handleCloseModal = () => {
+    setSelectedUser(null); // Inchide modulul
   };
 
   const filteredUsers = users.filter(
@@ -88,12 +100,34 @@ function Community() {
               {user.displayName}
             </h3>
             <p className="text-gray-600 mb-3">{user.description}</p>
-            <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2">
+
+            {/* Afiseaza locatia */}
+            <div className="flex items-center text-gray-500 mb-2">
+              <FaMapMarkerAlt className="mr-1" />
+              <span>{user.location || 'Unknown'}</span>
+            </div>
+
+          {/* Afiseaza genul muzical */}
+          {user.genre && (
+            <div className="flex items-center text-gray-500 mb-2">
+              <FaMicrophone className="mr-1"/>
+              <span>{user.genre}</span>
+            </div>
+          )}
+
+            <button className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2"
+              onClick={() => handleUserClick(user)}
+              >
               Connect
             </button>
           </div>
         ))}
       </div>
+
+      {/* Afiseaza modulul */}
+      {selectedUser && (
+        <UserProfileDetails user={selectedUser} onClose={handleCloseModal} />
+      )}
     </div>
   );
 }
