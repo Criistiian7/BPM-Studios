@@ -1,4 +1,5 @@
 export interface UserProfile {
+  genre: any;
   uid: string;
   email: string | null;
   displayName: string | null;
