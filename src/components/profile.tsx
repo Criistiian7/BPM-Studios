@@ -146,7 +146,7 @@ function Profile() {
               </h4>
               <p>
                 <a
-                  href={profile?.socialLinks?.facebook || "#"}
+                  href={profile?.socialLinks.facebook || "#"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-500 hover:text-blue-700"
@@ -157,7 +157,7 @@ function Profile() {
               </p>
               <p>
                 <a
-                  href={profile?.socialLinks?.instagram || "#"}
+                  href={profile?.socialLinks.instagram || "#"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-500 hover:text-blue-700"
@@ -168,7 +168,7 @@ function Profile() {
               </p>
               <p>
                 <a
-                  href={profile?.socialLinks?.youtube || "#"}
+                  href={profile?.socialLinks.youtube || "#"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-blue-500 hover:text-blue-700"
@@ -245,7 +245,7 @@ function Profile() {
                   type="text"
                   id="facebook"
                   name="facebook"
-                  value={tempProfile?.socialLinks.facebook || ""}
+                  value={tempProfile?.socialLinks?.facebook || ""}
                   onChange={handleChange}
                   className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 />
@@ -259,7 +259,7 @@ function Profile() {
                   type="text"
                   id="instagram"
                   name="instagram"
-                  value={tempProfile?.socialLinks.instagram || ""}
+                  value={tempProfile?.socialLinks?.instagram || ""}
                   onChange={handleChange}
                   className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 />
@@ -273,7 +273,7 @@ function Profile() {
                   type="text"
                   id="youtube"
                   name="youtube"
-                  value={tempProfile?.socialLinks.youtube || ""}
+                  value={tempProfile?.socialLinks?.youtube || ""}
                   onChange={handleChange}
                   className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                 />
