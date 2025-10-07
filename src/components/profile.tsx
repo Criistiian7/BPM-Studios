@@ -4,6 +4,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import type { UserProfile } from "../types/user";
 import { FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
+import ProfileForm from './profileform';
 
 function Profile() {
   const [user, loading, error] = useAuthState(auth);
