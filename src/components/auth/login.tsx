@@ -1,19 +1,27 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/authcontext";
 
 type Props= {
   onSwitchToRegister: () => void;
   onDemoLogin?: () => void;
 };
 
-const Login: React.FC<Props> = ({ onSwitchToRegister, onDemoLogin }) => {
+const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
+  const { login } = useAuth();
+  const navigate = useNavigate();
+
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.currentTarget as HTMLFormElement;
     const formData = new FormData(form);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
+    const email = String(formData.get("email") ?? "");
+    const password = String(formData.get("password") ?? "");
     console.log("Login submit", { email, password });
 
+    const demoUser = { id: "demo-1", name: "Cristin Demo", email };
+    login(demoUser);
   };
 
   return (
