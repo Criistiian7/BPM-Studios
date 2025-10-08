@@ -1,13 +1,13 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/authcontext";
+import { useAuth } from "../../context/AuthContext";
 
 type Props= {
   onSwitchToRegister: () => void;
   onDemoLogin?: () => void;
 };
 
-const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
+const Login: React.FC<Props> = ({ onSwitchToRegister, onDemoLogin }) => {
   const { login } = useAuth();
   const navigate = useNavigate();
 

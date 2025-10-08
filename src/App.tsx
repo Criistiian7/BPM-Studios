@@ -34,7 +34,7 @@ function App() {
   console.log(React);
 
   return (
-    <Router>
+    
       <Routes>
         <Route
           path="/login"
@@ -57,7 +57,7 @@ function App() {
           }
         />
       </Routes>
-    </Router>
+    
   );
 }
 

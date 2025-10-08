@@ -11,7 +11,7 @@ import {
 import type { UserProfile } from "../types/user";
 import { FaMapMarkedAlt, FaMicrophone } from "react-icons/fa";
 import { useAuthState } from "react-firebase-hooks/auth";
-import UserProfileDetails from "./user-profile-details";
+import UserProfileDetails from "./UserProfileDetails";
 
 interface ConnectionModalProps {
   user: UserProfile;

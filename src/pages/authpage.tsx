@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Login from "../components/auth/login";
 import Register from "../components/auth/register";
-import { useAuth } from "../context/authcontext";
+import { useAuth } from "../context/AuthContext";
 
 const AuthPage: React.FC = () => {
     const  [mode, setMode] = useState<"login" | "register">("login");
