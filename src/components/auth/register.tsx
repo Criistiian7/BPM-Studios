@@ -1,21 +1,12 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 
-type FormValues = {
-    name: string;
-    email: string;
-    password: string;
-};
+type FormValues = { name: string; email: string; password: string; };
+type Props = { onSwitchToLogin: () => void; onDemoLogin?: () => void; }; 
 
-type Props = {
-    onSwitchToLogin: () => void;
-}; 
-
-const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
+const Register: React.FC<Props> = ({ onSwitchToLogin, onDemoLogin }) => {
     const { register, handleSubmit, formState: { errors, isSubmitting } } =
-     useForm<FormValues>({
-        defaultValues: { name: "", email: "", password: ""}
-     });
+     useForm<FormValues>({ defaultValues: { name: "", email: "", password: ""}});
 
      const onSubmit = (data: FormValues) => {
         console.log("Register submit", data);
@@ -68,7 +59,13 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
         className="w-full bg-indigo-600 text-white py-2 rounded">
           {isSubmitting ? "Se înregistrează..." : "Înregistrare"}
         </button>
-      </form>
+      
+
+        <button type="button" onClick={onDemoLogin} 
+        className="w-full mt-2 border border-gray-300 text-gray-800 py-2 ronded">
+        Continuă cu demo
+        </button>
+        </form>
 
       <p className="mt-4 text-sm">
         Ai deja cont?{" "}
