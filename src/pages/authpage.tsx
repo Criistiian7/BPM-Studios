@@ -1,9 +1,17 @@
 import React, { useState } from "react";
 import Login from "../components/auth/login";
 import Register from "../components/auth/register";
+import { useAuth } from "../context/authcontext";
 
-const authpage: React.FC = () => {
+const AuthPage: React.FC = () => {
     const  [mode, setMode] = useState<"login" | "register">("login");
+    const { login } = useAuth();
+
+    const handleDemo = () => {
+        const demoUser = { id: "demo-1", name: "Demo User", email: "demo@bpm.dev"
+};
+        login(demoUser);
+    };
 
     return (
         <div className="min-h-screen flex items-center justify-center 
@@ -15,7 +23,7 @@ const authpage: React.FC = () => {
                     track-uri și construiește rețeaua ta.</p>
             </div>
             
-            <div class="flex items-center justify-center">
+            <div className="flex items-center justify-center">
             {mode === "login" ? (
                 <Login onSwitchToRegister={() => setMode("register")} />
             ) : (
@@ -27,4 +35,4 @@ const authpage: React.FC = () => {
     );
 };
         
-export default authpage;
+export default AuthPage;
