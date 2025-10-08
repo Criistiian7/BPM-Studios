@@ -5,14 +5,16 @@ import {
   Routes,
   Navigate,
 } from "react-router-dom";
-import Login from "./components/login";
-import Register from "./components/register";
+import Login from "./components/auth/login";
+import Register from "./components/auth/register";
+import AuthPage from "./pages/authpage";
 import Dashboard from "./components/dashboard";
 import Profile from "./components/profile";
 import Layout from "./components/layout";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "./firebase";
 import Community from "./components/community";
+
 
 function App() {
   const [user, loading, error] = useAuthState(auth);
