@@ -9,6 +9,7 @@ const App: React.FC = () => {
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/profile-edit" element={} />
       {/* alte rute */}
       </Routes>
     );

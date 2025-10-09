@@ -11,6 +11,13 @@ const MyTracks: React.FC = () => {
     const [bpm, setBpm] = useState<number>(120);
     const [loading, setLoading] = useState(false);
 
+    // în MyTracks component, adaugă state file
+    const [file, setFile] = useState<File | null>(null);
+    const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const f = e.target.files?.[0] ?? null;
+      setFile(f);
+    }
+
    useEffect(() => {
     if (!user) return;
     setLoading(true);
@@ -21,11 +28,20 @@ const MyTracks: React.FC = () => {
    const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    const created = await createTrack({ title, bpm, ownerId: user.id });
+
+    // include file?.name în titlu (mock)
+    const trackTitle = file ? `${title} (${file.name})` : title;
+    const created = await createTrack({ title: trackTitle, bpm, ownerId: user.id });
     setTracks(prev => [created, ...prev]);
     setTitle("");
     setBpm(120);
+    setFile(null);
    };
+
+   const [query, setQuery] = useState("");
+   const displayed = tracks.filter(t => 
+    t.title.toLowerCase().includes(query.toLowerCase()) || 
+    String(t.bpm).includes(query));
 
     return (
         <div>
@@ -34,8 +50,15 @@ const MyTracks: React.FC = () => {
       <form onSubmit={handleCreate} className="mb-4 flex gap-2">
         <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Track title" className="px-3 py-2 border rounded flex-1" required />
         <input value={bpm} onChange={e=>setBpm(Number(e.target.value))} type="number" min={30} max={300} className="w-24 px-3 py-2 border rounded" />
+        <input type="file" onChange={handleFile} accept=".mp3,.wav" />
         <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded">Add</button>
+
       </form>
+
+      <input placeholder="Search title or bpm" value={query} 
+      onChange={e=>setQuery(e.target.value)} 
+      className="px-3 py-2 border rounded w-full mb-3" />
+
 
       {loading ? <div>Loading...</div> : (
         <ul className="space-y-3">

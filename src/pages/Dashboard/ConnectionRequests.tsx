@@ -6,8 +6,13 @@ const ConnectionRequests: React.FC = () => {
     useEffect(()=>{ getRequests().then(setRequests).catch(()=>{}) }, []);
 
     const handleAccept = async (id: string) => {
-        await acceptRequest(id);
         setRequests(prev => prev.filter(r => r.id !== id));
+        try {
+            await acceptRequest(id);
+        } catch (err) {
+        const fresh = await getRequests();
+        setRequests(fresh);
+        }
     };
 
     return (
