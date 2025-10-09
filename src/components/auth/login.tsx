@@ -45,7 +45,7 @@ const Login: React.FC<Props> = ({ onSwitchToRegister, onDemoLogin }) => {
 
         <button
           type="button"
-          onClick={onDemoLogin}
+          onClick={() => onDemoLogin?.()}
           className="w-full mt-2 border border-gray-300 text-gray-800 py-2 rounded"
         >
           Continuă cu demo
