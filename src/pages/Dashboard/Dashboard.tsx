@@ -1,6 +1,7 @@
 import React from "react";
 import { useAuth } from "../../context/AuthContext";
 import { Navigate } from "react-router-dom";
+import Tabs from "./Tabs";
 import ProfileCard from "./ProfileCard";
 
 const Dashboard: React.FC = () => {
@@ -16,6 +17,9 @@ const Dashboard: React.FC = () => {
                 <ProfileCard />
                 <h1 className="text-2xl font-bold">Dashboard</h1>
                 <p className="mt-2 text-gray-600">Bine ai venit, {user.name}</p>
+                <div>
+                    <Tabs />   
+                </div>
             </div>
         </div>
     );    
