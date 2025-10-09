@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import UploadTrack from "./uploadTrack";
+import UploadTrack from "./UploadTrack";
 import { auth, db } from "../firebase";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";

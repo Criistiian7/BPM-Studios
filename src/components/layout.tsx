@@ -4,8 +4,8 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../firebase";
 import Dashboard from "./dashboard";
 import Profile from "./profile";
-import Login from "./login";
-import Register from "./register";
+import Login from "./auth/login";
+import Register from "./auth/register";
 
 interface LayoutProps {
   children: React.ReactNode;

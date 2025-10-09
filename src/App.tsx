@@ -1,62 +1,17 @@
 import React from "react";
-import {
-  BrowserRouter as Router,
-  Route,
-  Routes,
-  Navigate,
-} from "react-router-dom";
-import Login from "./components/login";
-import Register from "./components/register";
-import Dashboard from "./components/dashboard";
-import Profile from "./components/profile";
-import Layout from "./components/layout";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { auth } from "./firebase";
-import Community from "./components/community";
+import { Routes, Route, Navigate } from "react-router-dom";
+import AuthPage from "./pages/AuthPage";
+import Dashboard from "./pages/Dashboard";
 
-function App() {
-  const [user, loading, error] = useAuthState(auth);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        Loading...
-      </div>
-    );
-  }
-
-  if (error) {
-    return <div className="text-red-500">Error: {error.message}</div>;
-  }
-
-  console.log(React);
-
-  return (
-    <Router>
+const App: React.FC = () => {
+    return(
       <Routes>
-        <Route
-          path="/login"
-          element={user ? <Navigate to="/dashboard" /> : <Login />}
-        />
-        <Route
-          path="/register"
-          element={user ? <Navigate to="/dashboard" /> : <Register />}
-        />
-        <Route
-          path="*"
-          element={
-            <Layout>
-              <Routes>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/community" element={<Community />} />
-              </Routes>
-            </Layout>
-          }
-        />
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+      {/* alte rute */}
       </Routes>
-    </Router>
-  );
-}
+    );
+  };
 
-export default App;
+  export default App;
