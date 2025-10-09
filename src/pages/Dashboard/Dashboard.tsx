@@ -5,8 +5,8 @@ import Tabs from "./Tabs";
 import ProfileCard from "./ProfileCard";
 
 const Dashboard: React.FC = () => {
-    const { user } = useAuth();
-
+    const { user, loading } = useAuth();
+    if (loading) return <div className="p-6">Loading...</div>
     if (!user) {
         return <Navigate to="/auth" replace />;
     }
