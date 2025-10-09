@@ -1,11 +1,9 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { getContacts } from "../../api";
 
 const MyContacts: React.FC = () => {
-    const contacts = [
-    { id: "c1", name: "Adi", role: "Producer" },
-    { id: "c2", name: "Gabriela", role: "Singer" },
-    ];
-    
+    const [contacts, setContacts] = useState<any[]>([]);
+    useEffect(()=>{ getContacts().then(setContacts).catch(()=>{}) }, []);
     return (
         <div>
             <h3 className="text-lg font-semibold mb-3">My Contacts</h3>
@@ -20,6 +18,7 @@ const MyContacts: React.FC = () => {
                     <div className="text-sm text-gray-600">Message</div>    
                     </li>
                 ))}
+                {contacts.length===0 && <li className="text-gray-500">No contacts yet</li>}
             </ul>
         </div>
     );

@@ -1,10 +1,14 @@
-import React from "react";
+import React, {useEffect, useState } from "react";
+import { getRequests, acceptRequest } from "../../api";
 
 const ConnectionRequests: React.FC = () => {
-    const requests = [
-        { id: "r1", name: "Mihai", mutual: 3 },
-        { id: "r2", name: "Ioana", mutual: 1 },
-    ];
+    const [requests, setRequests] = useState<any[]>([]);
+    useEffect(()=>{ getRequests().then(setRequests).catch(()=>{}) }, []);
+
+    const handleAccept = async (id: string) => {
+        await acceptRequest(id);
+        setRequests(prev => prev.filter(r => r.id !== id));
+    };
 
     return (
         <div>
@@ -18,11 +22,14 @@ const ConnectionRequests: React.FC = () => {
                         <div className="text-sm text-gray-500">{r.mutual} conexiuni comune</div>
                     </div>
                     <div className="flex gap-2">
-                        <button className="px-3 py-1 bg-green-500 text-white rounded">Accept</button>
-                        <button className="px-3 py-1 bg-gray-200 rounded">Refuz</button>
+                        <button onClick={()=>handleAccept(r.id)} className="px-3 py-1 bg-green-500 text-white rounded">
+                            Accept</button>
+                        <button className="px-3 py-1 bg-gray-200 rounded">
+                            Refuz</button>
                         </div>
                     </li>
                 ))}
+                {requests.length===0 && <li className="text-gray-500">No requests</li>}
                 </ul>
                 </div>
     );
