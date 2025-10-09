@@ -38,6 +38,11 @@ const MyTracks: React.FC = () => {
     setFile(null);
    };
 
+   const [query, setQuery] = useState("");
+   const displayed = tracks.filter(t => 
+    t.title.toLowerCase().includes(query.toLowerCase()) || 
+    String(t.bpm).includes(query));
+
     return (
         <div>
       <h3 className="text-lg font-semibold mb-3">My Tracks</h3>
@@ -49,6 +54,11 @@ const MyTracks: React.FC = () => {
         <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded">Add</button>
 
       </form>
+
+      <input placeholder="Search title or bpm" value={query} 
+      onChange={e=>setQuery(e.target.value)} 
+      className="px-3 py-2 border rounded w-full mb-3" />
+
 
       {loading ? <div>Loading...</div> : (
         <ul className="space-y-3">
