@@ -1,8 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "../../context/AuthContext";
+import { useAuth } from "../../context/authContext";
 
-type Props= {
+type Props = {
   onSwitchToRegister: () => void;
   onDemoLogin?: () => void;
 };
@@ -10,7 +10,6 @@ type Props= {
 const Login: React.FC<Props> = ({ onSwitchToRegister, onDemoLogin }) => {
   const { login } = useAuth();
   const navigate = useNavigate();
-
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,19 +28,36 @@ const Login: React.FC<Props> = ({ onSwitchToRegister, onDemoLogin }) => {
       <h2 className="text-2xl font-semibold mb-4">Bine ai revenit</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm font-medium" 
-          htmlFor="email">Email</label>
-          <input id="email" name="email" type="email" required 
-          className="mt-1 w-full px-3 py-2 border rounded" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium" 
-            htmlFor="password">Parolă</label>
-            <input id="password" name="password" type="password" 
-            required minLength={6} className="mt-1 w-full px-3 py-2 border rounded" />
+          <label className="block text-sm font-medium" htmlFor="email">
+            Email
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            className="mt-1 w-full px-3 py-2 border rounded"
+          />
         </div>
-        <button type="submit" className="w-full bg-indigo-600 text-white py-2 rounded">
-          Logare</button>
+        <div>
+          <label className="block text-sm font-medium" htmlFor="password">
+            Parolă
+          </label>
+          <input
+            id="password"
+            name="password"
+            type="password"
+            required
+            minLength={6}
+            className="mt-1 w-full px-3 py-2 border rounded"
+          />
+        </div>
+        <button
+          type="submit"
+          className="w-full bg-indigo-600 text-white py-2 rounded"
+        >
+          Logare
+        </button>
 
         <button
           type="button"
@@ -53,8 +69,13 @@ const Login: React.FC<Props> = ({ onSwitchToRegister, onDemoLogin }) => {
       </form>
       <p className="mt-4 text-sm">
         Nu ai cont?{" "}
-        <button type="button" onClick={onSwitchToRegister} className="text-indigo-600">
-          Creează cont</button>
+        <button
+          type="button"
+          onClick={onSwitchToRegister}
+          className="text-indigo-600"
+        >
+          Creează cont
+        </button>
       </p>
     </div>
   );

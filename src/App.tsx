@@ -2,17 +2,18 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import AuthPage from "./pages/AuthPage";
 import Dashboard from "./pages/Dashboard";
+import ProfileEdit from "./pages/ProfileEdit";
 
 const App: React.FC = () => {
-    return(
-      <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/profile-edit" element={} />
+  return (
+    <Routes>
+      <Route path="/" element={<Navigate to="/dashboard" replace />} />
+      <Route path="/auth" element={<AuthPage />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/profile-edit" element={<ProfileEdit />} />
       {/* alte rute */}
-      </Routes>
-    );
-  };
+    </Routes>
+  );
+};
 
-  export default App;
+export default App;
