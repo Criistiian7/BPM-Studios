@@ -5,8 +5,8 @@ import {
   signOut,
   createUserWithEmailAndPassword,
   updateProfile,
-  type User,
 } from "firebase/auth";
+import type { User } from "firebase/auth";
 import { auth } from "../firebase";
 import { useNavigate } from "react-router-dom";
 
@@ -22,7 +22,7 @@ type AuthContextType = {
   loading: boolean;
   register: (email: string, password: string, name?: string) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  // loginDemo: () => Promise<void>;
+  loginDemo: () => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -63,16 +63,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     navigate("/dashboard");
   };
 
-  // const loginDemo = async () => {
-  //   const demoEmail = import.meta.VITE_DEMO_EMAIL;
-  //   const demoPass = import.meta.VITE_DEMO_PASSWORD;
-  //   if (demoEmail && demoPass) {
-  //     await signInWithEmailAndPassword(auth, demoEmail, demoPass);
-  //     navigate("/dashboard");
-  //   } else {
-  //     throw new Error("No demo credentials configured");
-  //   }
-  // };
+  const loginDemo = async () => {
+    const demoEmail = import.meta.VITE_DEMO_EMAIL;
+    const demoPass = import.meta.VITE_DEMO_PASSWORD;
+    if (demoEmail && demoPass) {
+      await signInWithEmailAndPassword(auth, demoEmail, demoPass);
+      navigate("/dashboard");
+    } else {
+      throw new Error("No demo credentials configured");
+    }
+  };
 
   const logout = async () => {
     await signOut(auth);
@@ -80,7 +80,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, register, login, logout }}>
+    <AuthContext.Provider
+      value={{ user, loading, register, login, logout, loginDemo }}
+    >
       {children}
     </AuthContext.Provider>
   );
