@@ -1,5 +1,4 @@
-import React from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState } from "react";
 import { useAuth } from "../../context/authContext";
 
 type Props = {
@@ -9,7 +8,6 @@ type Props = {
 
 const Login: React.FC<Props> = ({ onSwitchToRegister, onDemoLogin }) => {
   const { login } = useAuth();
-  const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -19,7 +17,7 @@ const Login: React.FC<Props> = ({ onSwitchToRegister, onDemoLogin }) => {
     const password = String(formData.get("password") ?? "");
     console.log("Login submit", { email, password });
 
-    const demoUser = { id: "demo-1", name: "Cristin Demo", email };
+    const demoUser = { id: "demo-1", name: "Cristian Demo", email };
     login(demoUser);
   };
 
