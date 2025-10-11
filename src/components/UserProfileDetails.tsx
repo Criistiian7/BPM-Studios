@@ -191,11 +191,11 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                                         href={user.socialLinks.facebook}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                                        className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] hover:bg-[#166FE5] text-white rounded-lg transition-colors shadow-md"
                                         aria-label="Facebook"
                                     >
-                                        <FaFacebook />
-                                        <span>Facebook</span>
+                                        <FaFacebook className="text-xl" />
+                                        <span className="font-semibold">Facebook</span>
                                     </a>
                                 )}
                                 {user.socialLinks.instagram && (
@@ -203,11 +203,11 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                                         href={user.socialLinks.instagram}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-lg transition-colors"
+                                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#FCAF45] hover:from-[#7232A8] hover:via-[#E91B1B] hover:to-[#F5A742] text-white rounded-lg transition-all shadow-md"
                                         aria-label="Instagram"
                                     >
-                                        <FaInstagram />
-                                        <span>Instagram</span>
+                                        <FaInstagram className="text-xl" />
+                                        <span className="font-semibold">Instagram</span>
                                     </a>
                                 )}
                                 {user.socialLinks.youtube && (
@@ -215,11 +215,11 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                                         href={user.socialLinks.youtube}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+                                        className="flex items-center gap-2 px-4 py-2 bg-[#FF0000] hover:bg-[#E60000] text-white rounded-lg transition-colors shadow-md"
                                         aria-label="YouTube"
                                     >
-                                        <FaYoutube />
-                                        <span>YouTube</span>
+                                        <FaYoutube className="text-xl" />
+                                        <span className="font-semibold">YouTube</span>
                                     </a>
                                 )}
                             </div>

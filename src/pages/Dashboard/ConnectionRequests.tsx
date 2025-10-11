@@ -35,13 +35,14 @@ const ConnectionRequests: React.FC = () => {
 
   useEffect(() => {
     if (!user) {
+      console.log("No user found in ConnectionRequests");
       setLoading(false);
       return;
     }
 
     const fetchRequests = async () => {
       try {
-        console.log("Fetching requests for user:", user.id);
+        console.log("Fetching requests for user:", user.id, user.email);
         const requestsRef = collection(db, "connectionRequests");
         const q = query(
           requestsRef,
@@ -51,13 +52,19 @@ const ConnectionRequests: React.FC = () => {
         const querySnapshot = await getDocs(q);
         const requestsData: ConnectionRequest[] = [];
         querySnapshot.forEach((doc) => {
-          requestsData.push({ id: doc.id, ...doc.data() } as ConnectionRequest);
+          const data = doc.data();
+          console.log("Request data:", doc.id, data);
+          requestsData.push({ id: doc.id, ...data } as ConnectionRequest);
         });
-        console.log("Found requests:", requestsData.length);
+        console.log("Found requests:", requestsData.length, requestsData);
         setRequests(requestsData);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error fetching requests:", error);
-        alert("Eroare la încărcarea cererilor: " + (error as Error).message);
+        console.error("Error details:", {
+          code: error.code,
+          message: error.message,
+          userId: user.id
+        });
       } finally {
         setLoading(false);
       }
@@ -128,8 +135,19 @@ const ConnectionRequests: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      <div className="flex flex-col items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mb-4"></div>
+        <p className="text-gray-600 dark:text-gray-400">Se încarcă cererile...</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+        <p className="text-gray-500 dark:text-gray-400">
+          Te rugăm să te autentifici pentru a vedea cererile
+        </p>
       </div>
     );
   }
@@ -138,14 +156,17 @@ const ConnectionRequests: React.FC = () => {
     <div>
       <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
         <FiUserPlus />
-        Cereri de Conectare
+        Cereri de Conectare ({requests.length})
       </h3>
       
       {requests.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
-          <FiUserPlus className="mx-auto text-4xl text-gray-400 mb-3" />
-          <p className="text-gray-500 dark:text-gray-400">
+        <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/50 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
+          <FiUserPlus className="mx-auto text-5xl text-gray-400 mb-4" />
+          <p className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
             Nu ai cereri de conectare
+          </p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            Când alți utilizatori îți trimit cereri de conectare, acestea vor apărea aici
           </p>
         </div>
       ) : (
