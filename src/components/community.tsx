@@ -130,6 +130,18 @@ function Community() {
       return;
     }
 
+    // Check if already connected
+    if (connectedUsers.has(targetUser.uid)) {
+      console.log("Already connected to this user");
+      return;
+    }
+
+    // Check if request already sent
+    if (sentRequests.has(targetUser.uid)) {
+      console.log("Request already sent to this user");
+      return;
+    }
+
     setSendingRequest(targetUser.uid);
 
     try {
@@ -139,6 +151,22 @@ function Community() {
         receiverId: targetUser.uid,
         receiverName: targetUser.displayName
       });
+
+      // Check for existing pending requests
+      const existingRequestQuery = query(
+        collection(db, "connectionRequests"),
+        where("senderId", "==", currentUser.id),
+        where("receiverId", "==", targetUser.uid),
+        where("status", "==", "pending")
+      );
+      const existingSnapshot = await getDocs(existingRequestQuery);
+      
+      if (!existingSnapshot.empty) {
+        console.log("Request already exists");
+        setSentRequests((prev) => new Set(prev).add(targetUser.uid));
+        setSendingRequest(null);
+        return;
+      }
 
       await addDoc(collection(db, "connectionRequests"), {
         senderId: currentUser.id,
@@ -180,7 +208,7 @@ function Community() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
-          Comunitate
+        Comunitatea BeatPlanner
         </h2>
 
         {/* Search Filter */}
@@ -288,7 +316,7 @@ function Community() {
                   <button
                     disabled
                     onClick={(e) => e.stopPropagation()}
-                    className="w-full bg-green-600 dark:bg-green-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 opacity-75"
+                    className="w-full bg-green-600 dark:bg-green-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 opacity-75 cursor-not-allowed"
                   >
                     <FiCheck />
                     <span>Conectat</span>
@@ -297,7 +325,7 @@ function Community() {
                   <button
                     disabled
                     onClick={(e) => e.stopPropagation()}
-                    className="w-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2"
+                    className="w-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed"
                   >
                     <FiCheck />
                     <span>Cerere trimisă</span>
@@ -309,7 +337,7 @@ function Community() {
                       handleConnectClick(user);
                     }}
                     disabled={isSending}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
                   >
                     {isSending ? (
                       <>

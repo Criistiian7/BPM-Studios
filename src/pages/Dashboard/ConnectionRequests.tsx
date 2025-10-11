@@ -8,7 +8,6 @@ import {
   getDocs,
   doc,
   updateDoc,
-  deleteDoc,
   addDoc,
   serverTimestamp,
 } from "firebase/firestore";
@@ -78,6 +77,27 @@ const ConnectionRequests: React.FC = () => {
     
     setProcessing(request.id);
     try {
+      // Check if connection already exists to prevent duplicates
+      const existingConnectionQuery = query(
+        collection(db, "connections"),
+        where("userId", "==", user.id),
+        where("connectedUserId", "==", request.senderId)
+      );
+      const existingSnapshot = await getDocs(existingConnectionQuery);
+      
+      if (!existingSnapshot.empty) {
+        console.log("Connection already exists, skipping creation");
+        // Just update request status and remove from UI
+        const requestRef = doc(db, "connectionRequests", request.id);
+        await updateDoc(requestRef, {
+          status: "accepted",
+          acceptedAt: serverTimestamp(),
+        });
+        setRequests((prev) => prev.filter((r) => r.id !== request.id));
+        setProcessing(null);
+        return;
+      }
+
       // Update request status
       const requestRef = doc(db, "connectionRequests", request.id);
       await updateDoc(requestRef, {
@@ -103,6 +123,8 @@ const ConnectionRequests: React.FC = () => {
         connectedUserAccountType: user.accountType,
         createdAt: serverTimestamp(),
       });
+
+      console.log("Connection created successfully between", user.id, "and", request.senderId);
 
       // Remove from local state
       setRequests((prev) => prev.filter((r) => r.id !== request.id));
