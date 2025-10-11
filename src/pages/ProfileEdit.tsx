@@ -243,11 +243,15 @@ const ProfileEdit: React.FC = () => {
                     {getInitials(`${firstName} ${lastName}`.trim() || user.name)}
                   </div>
                 )}
-                <label className="absolute bottom-0 right-0 bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-full cursor-pointer transition-colors shadow-lg">
+                <label 
+                  htmlFor="avatar-upload"
+                  className="absolute bottom-0 right-0 bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-full cursor-pointer transition-colors shadow-lg"
+                >
                   <FiCamera />
                   <input
+                    id="avatar-upload"
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
                     onChange={handleImageUpload}
                     className="hidden"
                     disabled={uploading}

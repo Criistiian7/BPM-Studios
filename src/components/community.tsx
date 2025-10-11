@@ -22,6 +22,7 @@ function Community() {
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [sendingRequest, setSendingRequest] = useState<string | null>(null);
   const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
+  const [connectedUsers, setConnectedUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchData = async () => {
@@ -71,6 +72,46 @@ function Community() {
     fetchData();
   }, [genreFilter]);
 
+  // Fetch existing requests and connections
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const fetchRequestsAndConnections = async () => {
+      try {
+        // Fetch sent requests
+        const requestsRef = collection(db, "connectionRequests");
+        const sentQuery = query(
+          requestsRef,
+          where("senderId", "==", currentUser.id),
+          where("status", "==", "pending")
+        );
+        const sentSnapshot = await getDocs(sentQuery);
+        const sentIds = new Set<string>();
+        sentSnapshot.forEach((doc) => {
+          sentIds.add(doc.data().receiverId);
+        });
+        setSentRequests(sentIds);
+
+        // Fetch connections
+        const connectionsRef = collection(db, "connections");
+        const connectionsQuery = query(
+          connectionsRef,
+          where("userId", "==", currentUser.id)
+        );
+        const connectionsSnapshot = await getDocs(connectionsQuery);
+        const connectedIds = new Set<string>();
+        connectionsSnapshot.forEach((doc) => {
+          connectedIds.add(doc.data().connectedUserId);
+        });
+        setConnectedUsers(connectedIds);
+      } catch (error) {
+        console.error("Error fetching requests and connections:", error);
+      }
+    };
+
+    fetchRequestsAndConnections();
+  }, [currentUser]);
+
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
   };
@@ -89,9 +130,44 @@ function Community() {
       return;
     }
 
+    // Check if already connected
+    if (connectedUsers.has(targetUser.uid)) {
+      console.log("Already connected to this user");
+      return;
+    }
+
+    // Check if request already sent
+    if (sentRequests.has(targetUser.uid)) {
+      console.log("Request already sent to this user");
+      return;
+    }
+
     setSendingRequest(targetUser.uid);
 
     try {
+      console.log("Sending connection request:", {
+        senderId: currentUser.id,
+        senderName: currentUser.name,
+        receiverId: targetUser.uid,
+        receiverName: targetUser.displayName
+      });
+
+      // Check for existing pending requests
+      const existingRequestQuery = query(
+        collection(db, "connectionRequests"),
+        where("senderId", "==", currentUser.id),
+        where("receiverId", "==", targetUser.uid),
+        where("status", "==", "pending")
+      );
+      const existingSnapshot = await getDocs(existingRequestQuery);
+      
+      if (!existingSnapshot.empty) {
+        console.log("Request already exists");
+        setSentRequests((prev) => new Set(prev).add(targetUser.uid));
+        setSendingRequest(null);
+        return;
+      }
+
       await addDoc(collection(db, "connectionRequests"), {
         senderId: currentUser.id,
         senderName: currentUser.name,
@@ -99,13 +175,13 @@ function Community() {
         senderAvatar: currentUser.avatar || null,
         senderAccountType: currentUser.accountType,
         receiverId: targetUser.uid,
-        receiverName: targetUser.displayName,
+        receiverName: targetUser.displayName || targetUser.email,
         status: "pending",
         createdAt: serverTimestamp(),
       });
 
       setSentRequests((prev) => new Set(prev).add(targetUser.uid));
-      alert("Cerere de conectare trimisă cu succes!");
+      console.log("Connection request sent successfully!");
     } catch (error: any) {
       console.error("Error sending connection request: ", error);
       alert("Eroare la trimiterea cererii: " + error.message);
@@ -132,7 +208,7 @@ function Community() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
-          Comunitate
+        Comunitatea BeatPlanner
         </h2>
 
         {/* Search Filter */}
@@ -177,6 +253,7 @@ function Community() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredUsers.map((user) => {
             const requestSent = sentRequests.has(user.uid);
+            const isConnected = connectedUsers.has(user.uid);
             const isSending = sendingRequest === user.uid;
 
             return (
@@ -235,11 +312,20 @@ function Community() {
                 )}
 
                 {/* Connect Button */}
-                {requestSent ? (
+                {isConnected ? (
                   <button
                     disabled
                     onClick={(e) => e.stopPropagation()}
-                    className="w-full bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2"
+                    className="w-full bg-green-600 dark:bg-green-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 opacity-75 cursor-not-allowed"
+                  >
+                    <FiCheck />
+                    <span>Conectat</span>
+                  </button>
+                ) : requestSent ? (
+                  <button
+                    disabled
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed"
                   >
                     <FiCheck />
                     <span>Cerere trimisă</span>
@@ -251,7 +337,7 @@ function Community() {
                       handleConnectClick(user);
                     }}
                     disabled={isSending}
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
                   >
                     {isSending ? (
                       <>

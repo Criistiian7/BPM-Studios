@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/authContext";
 import { db } from "../../firebase";
-import { collection, query, where, getDocs } from "firebase/firestore";
-import { FiUsers, FiMail } from "react-icons/fi";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import { FiUsers, FiMail, FiStar } from "react-icons/fi";
+import UserProfileDetails from "../../components/UserProfileDetails";
+import type { UserProfile } from "../../types/user";
 
 interface Connection {
   id: string;
@@ -11,6 +13,8 @@ interface Connection {
   connectedUserName: string;
   connectedUserAvatar: string | null;
   connectedUserAccountType: string;
+  connectedUserEmail?: string;
+  connectedUserRating?: number;
   createdAt: any;
 }
 
@@ -18,6 +22,7 @@ const MyContacts: React.FC = () => {
   const { user } = useAuth();
   const [contacts, setContacts] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedContact, setSelectedContact] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -28,9 +33,30 @@ const MyContacts: React.FC = () => {
         const q = query(contactsRef, where("userId", "==", user.id));
         const querySnapshot = await getDocs(q);
         const contactsData: Connection[] = [];
-        querySnapshot.forEach((doc) => {
-          contactsData.push({ id: doc.id, ...doc.data() } as Connection);
-        });
+        
+        // Fetch full user data for each contact
+        for (const docSnapshot of querySnapshot.docs) {
+          const connectionData = docSnapshot.data();
+          const userRef = doc(db, "users", connectionData.connectedUserId);
+          const userDoc = await getDoc(userRef);
+          
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            contactsData.push({
+              id: docSnapshot.id,
+              ...connectionData,
+              connectedUserEmail: userData.email,
+              connectedUserRating: userData.rating || 0,
+            } as Connection);
+          } else {
+            contactsData.push({ 
+              id: docSnapshot.id, 
+              ...connectionData,
+              connectedUserRating: 0,
+            } as Connection);
+          }
+        }
+        
         setContacts(contactsData);
       } catch (error) {
         console.error("Error fetching contacts:", error);
@@ -41,6 +67,23 @@ const MyContacts: React.FC = () => {
 
     fetchContacts();
   }, [user]);
+
+  const handleContactClick = async (contact: Connection) => {
+    try {
+      const userRef = doc(db, "users", contact.connectedUserId);
+      const userDoc = await getDoc(userRef);
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        setSelectedContact({
+          uid: contact.connectedUserId,
+          ...userData,
+        } as UserProfile);
+      }
+    } catch (error) {
+      console.error("Error fetching user details:", error);
+    }
+  };
 
   if (loading) {
     return (
@@ -68,22 +111,23 @@ const MyContacts: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {contacts.map((contact) => (
             <div
               key={contact.id}
-              className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+              onClick={() => handleContactClick(contact)}
+              className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all cursor-pointer"
             >
-              <div className="flex items-center gap-4">
+              <div className="flex flex-col items-center text-center gap-3">
                 {/* Avatar */}
                 {contact.connectedUserAvatar ? (
                   <img
                     src={contact.connectedUserAvatar}
                     alt={contact.connectedUserName}
-                    className="w-14 h-14 rounded-full object-cover"
+                    className="w-20 h-20 rounded-full object-cover border-4 border-gray-100 dark:border-gray-700"
                   />
                 ) : (
-                  <div className="w-14 h-14 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold">
+                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-semibold border-4 border-gray-100 dark:border-gray-700">
                     {contact.connectedUserName
                       .split(" ")
                       .map((n) => n[0])
@@ -93,25 +137,51 @@ const MyContacts: React.FC = () => {
                   </div>
                 )}
 
-                {/* Info */}
-                <div className="flex-1">
-                  <div className="font-semibold text-gray-900 dark:text-white">
+                {/* Name */}
+                <div className="flex-1 w-full">
+                  <div className="font-bold text-lg text-gray-900 dark:text-white mb-1">
                     {contact.connectedUserName}
                   </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                  
+                  {/* Account Type Badge */}
+                  <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-medium mb-2">
                     {contact.connectedUserAccountType === "producer"
                       ? "Producător"
                       : "Artist"}
                   </div>
-                  <button className="mt-2 text-xs text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 flex items-center gap-1">
-                    <FiMail size={12} />
-                    <span>Trimite mesaj</span>
-                  </button>
+                  
+                  {/* Rating */}
+                  <div className="flex items-center justify-center gap-1 text-yellow-500 mb-3">
+                    <FiStar className="fill-current" />
+                    <span className="text-sm font-semibold">
+                      {(contact.connectedUserRating || 0).toFixed(1)}
+                    </span>
+                  </div>
+                  
+                  {/* Send Message Button */}
+                  {contact.connectedUserEmail && (
+                    <a
+                      href={`mailto:${contact.connectedUserEmail}`}
+                      onClick={(e) => e.stopPropagation()}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
+                    >
+                      <FiMail />
+                      <span>Trimite mesaj</span>
+                    </a>
+                  )}
                 </div>
               </div>
             </div>
           ))}
         </div>
+      )}
+
+      {/* User Profile Modal */}
+      {selectedContact && (
+        <UserProfileDetails
+          user={selectedContact}
+          onClose={() => setSelectedContact(null)}
+        />
       )}
     </div>
   );
