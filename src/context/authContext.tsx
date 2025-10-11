@@ -22,7 +22,6 @@ type AuthContextType = {
     accountType?: AccountType
   ) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
-  loginDemo: () => Promise<void>;
   logout: () => Promise<void>;
 };
 
@@ -46,11 +45,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           const rating = typeof profile?.rating === "number" ? profile!.rating : 0;
           setUser({
             id: fbUser.uid,
-            name: fbUser.displayName ?? fbUser.email ?? "User",
+            name: profile?.displayName || fbUser.displayName || "User",
             email: fbUser.email ?? "",
-            avatar: fbUser.photoURL ?? null,
+            avatar: profile?.photoURL || fbUser.photoURL || null,
             accountType,
             rating,
+            description: profile?.description ?? "",
+            genre: profile?.genre ?? "",
+            location: profile?.location ?? "",
+            phoneNumber: profile?.phoneNumber ?? null,
+            socialLinks: profile?.socialLinks ?? { facebook: null, instagram: null, youtube: null },
+            statistics: profile?.statistics ?? { tracksUploaded: 0, projectsCompleted: 0 },
+            memberSince: profile?.memberSince ?? "",
           });
         } catch (err) {
           setUser({
@@ -106,17 +112,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     navigate("/dashboard");
   };
 
-  const loginDemo = async () => {
-    const demoEmail = import.meta.env.VITE_DEMO_EMAIL;
-    const demoPass = import.meta.env.VITE_DEMO_PASSWORD;
-    if (demoEmail && demoPass) {
-      await signInWithEmailAndPassword(auth, demoEmail, demoPass);
-      navigate("/dashboard");
-    } else {
-      throw new Error("No demo credentials configured");
-    }
-  };
-
   const logout = async () => {
     await signOut(auth);
     navigate("/auth");
@@ -124,7 +119,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, register, login, logout, loginDemo }}
+      value={{ user, loading, register, login, logout }}
     >
       {children}
     </AuthContext.Provider>
