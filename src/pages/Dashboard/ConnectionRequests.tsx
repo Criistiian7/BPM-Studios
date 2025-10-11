@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getRequests, acceptRequest } from "../../api/api";
+import { getRequests, acceptRequest } from "../../api";
 
 const ConnectionRequests: React.FC = () => {
   const [requests, setRequests] = useState<any[]>([]);

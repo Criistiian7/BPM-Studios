@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { getContacts } from "../../api/api";
+import { getContacts } from "../../api";
 
 const MyContacts: React.FC = () => {
   const [contacts, setContacts] = useState<any[]>([]);
