@@ -1,16 +1,9 @@
 import React, { useState } from "react";
 import Login from "../components/auth/login";
 import Register from "../components/auth/register";
-import { useAuth } from "../context/authContext";
 
 const AuthPage: React.FC = () => {
   const [mode, setMode] = useState<"login" | "register">("login");
-  const { login } = useAuth();
-
-  const handleDemo = () => {
-    const demoUser = { id: "demo-1", name: "Demo User", email: "demo@bpm.dev" };
-    login(demoUser);
-  };
 
   return (
     <div
