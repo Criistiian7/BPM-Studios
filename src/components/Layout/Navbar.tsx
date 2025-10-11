@@ -30,7 +30,7 @@ const Navbar: React.FC = () => {
     
     setIsDarkMode(isDark);
     
-    // Apply theme to HTML element
+    // Apply theme to HTML element immediately
     if (isDark) {
       document.documentElement.classList.add("dark");
     } else {
@@ -39,20 +39,19 @@ const Navbar: React.FC = () => {
   }, []);
 
   const toggleTheme = () => {
-    setIsDarkMode((prev) => {
-      const newMode = !prev;
-      
-      // Apply immediately to HTML
-      if (newMode) {
-        document.documentElement.classList.add("dark");
-        localStorage.setItem("theme", "dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-        localStorage.setItem("theme", "light");
-      }
-      
-      return newMode;
-    });
+    const newMode = !isDarkMode;
+    
+    // Update state
+    setIsDarkMode(newMode);
+    
+    // Apply immediately to HTML
+    if (newMode) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
   };
 
   const handleLogout = async () => {
