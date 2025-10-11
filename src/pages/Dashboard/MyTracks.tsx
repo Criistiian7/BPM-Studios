@@ -1,27 +1,23 @@
 import React, { useState, useEffect } from "react";
-import { getTracks, createTrack } from "../../api";
 import { useAuth } from "../../context/authContext";
-
-type Track = { id: string; title: string; bpm: number; ownerId: string };
+import { fetchTracksByOwner, createTrackFirestore } from "../../firebase/api";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { storage } from "../../firebase";
 
 const MyTracks: React.FC = () => {
   const { user } = useAuth();
-  const [tracks, setTracks] = useState<Track[]>([]);
+  const [tracks, setTracks] = useState<any[]>([]);
   const [title, setTitle] = useState("");
   const [bpm, setBpm] = useState<number>(120);
   const [loading, setLoading] = useState(false);
-
-  // în MyTracks component, adaugă state file
   const [file, setFile] = useState<File | null>(null);
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0] ?? null;
-    setFile(f);
-  };
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setFile(e.target.files?.[0] ?? null);
 
   useEffect(() => {
     if (!user) return;
     setLoading(true);
-    getTracks(user.id)
+    fetchTracksByOwner(user.id)
       .then((data) => {
         setTracks(data);
         setLoading(false);
@@ -32,26 +28,26 @@ const MyTracks: React.FC = () => {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-
-    // include file?.name în titlu (mock)
-    const trackTitle = file ? `${title} (${file.name})` : title;
-    const created = await createTrack({
-      title: trackTitle,
+    let fileUrl: string | undefined;
+    if (file) {
+      const storageRef = ref(
+        storage,
+        `tracks/${user.id}/${Date.now()}_${file.name}`
+      );
+      const snap = await uploadBytes(storageRef, file);
+      fileUrl = await getDownloadURL(snap.ref);
+    }
+    const created = await createTrackFirestore({
+      title,
       bpm,
       ownerId: user.id,
+      fileUrl,
     });
     setTracks((prev) => [created, ...prev]);
     setTitle("");
     setBpm(120);
     setFile(null);
   };
-
-  const [query, setQuery] = useState("");
-  const displayed = tracks.filter(
-    (t) =>
-      t.title.toLowerCase().includes(query.toLowerCase()) ||
-      String(t.bpm).includes(query)
-  );
 
   return (
     <div>
@@ -73,7 +69,6 @@ const MyTracks: React.FC = () => {
           max={300}
           className="w-24 px-3 py-2 border rounded"
         />
-        <input type="file" onChange={handleFile} accept=".mp3,.wav" />
         <button
           type="submit"
           className="px-4 py-2 bg-indigo-600 text-white rounded"
@@ -81,13 +76,6 @@ const MyTracks: React.FC = () => {
           Add
         </button>
       </form>
-
-      <input
-        placeholder="Search title or bpm"
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        className="px-3 py-2 border rounded w-full mb-3"
-      />
 
       {loading ? (
         <div>Loading...</div>
