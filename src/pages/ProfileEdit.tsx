@@ -38,9 +38,15 @@ const ProfileEdit: React.FC = () => {
         if (snap.exists()) {
           const data = snap.data() as UserProfile;
           const fullName = data.displayName || "";
-          const nameParts = fullName.split(' ');
-          setFirstName(nameParts[0] || "");
-          setLastName(nameParts.slice(1).join(' ') || "");
+          // Split only on first space to allow multiple names
+          const firstSpaceIndex = fullName.indexOf(' ');
+          if (firstSpaceIndex > -1) {
+            setFirstName(fullName.substring(0, firstSpaceIndex));
+            setLastName(fullName.substring(firstSpaceIndex + 1));
+          } else {
+            setFirstName(fullName);
+            setLastName("");
+          }
           setDescription(data.description || "");
           setGenre(data.genre || "");
           setLocation(data.location || "");
@@ -62,11 +68,27 @@ const ProfileEdit: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setMessage({ type: "error", text: "Fișierul este prea mare. Maxim 5MB." });
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setMessage({ type: "error", text: "Te rog selectează o imagine validă." });
+      return;
+    }
+
     setUploading(true);
+    setMessage(null);
+    
     try {
       const storageRef = ref(storage, `avatars/${user.id}/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
+      const snapshot = await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(snapshot.ref);
+      
+      // Update state immediately
       setPhotoURL(url);
       
       // Update Firestore
@@ -79,9 +101,12 @@ const ProfileEdit: React.FC = () => {
       }
       
       setMessage({ type: "success", text: "Imaginea a fost încărcată cu succes!" });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error uploading image:", error);
-      setMessage({ type: "error", text: "Eroare la încărcarea imaginii" });
+      setMessage({ 
+        type: "error", 
+        text: `Eroare la încărcarea imaginii: ${error.message || 'Încearcă din nou'}` 
+      });
     } finally {
       setUploading(false);
     }
@@ -95,7 +120,13 @@ const ProfileEdit: React.FC = () => {
     setMessage(null);
 
     try {
-      const displayName = `${firstName} ${lastName}`.trim();
+      // Trim and preserve spaces in names
+      const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
+      
+      if (!displayName) {
+        setMessage({ type: "error", text: "Te rog completează numele!" });
+        return;
+      }
       
       const userRef = doc(db, "users", user.id);
       const snap = await getDoc(userRef);
@@ -107,32 +138,38 @@ const ProfileEdit: React.FC = () => {
         email: user.email,
         displayName,
         photoURL,
-        description,
-        genre,
-        location,
-        phoneNumber,
+        description: description.trim(),
+        genre: genre.trim(),
+        location: location.trim(),
+        phoneNumber: phoneNumber.trim(),
         socialLinks: {
-          facebook: facebook || null,
-          instagram: instagram || null,
-          youtube: youtube || null,
+          facebook: facebook.trim() || null,
+          instagram: instagram.trim() || null,
+          youtube: youtube.trim() || null,
         },
         updatedAt: new Date().toISOString(),
       }, { merge: true });
 
-      // Update Firebase Auth displayName
+      // Update Firebase Auth displayName and photo
       if (auth.currentUser) {
-        await updateProfile(auth.currentUser, { displayName });
+        await updateProfile(auth.currentUser, { 
+          displayName,
+          photoURL: photoURL || undefined
+        });
       }
 
       setMessage({ type: "success", text: "Profilul a fost salvat cu succes!" });
       
-      // Reload page after 1 second to refresh user data
+      // Reload page after 1.5 seconds to refresh user data
       setTimeout(() => {
         window.location.reload();
-      }, 1000);
-    } catch (error) {
+      }, 1500);
+    } catch (error: any) {
       console.error("Error saving profile:", error);
-      setMessage({ type: "error", text: "Eroare la salvarea profilului" });
+      setMessage({ 
+        type: "error", 
+        text: `Eroare la salvarea profilului: ${error.message || 'Încearcă din nou'}` 
+      });
     } finally {
       setSaving(false);
     }
