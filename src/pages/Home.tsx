@@ -46,9 +46,9 @@ const Home: React.FC = () => {
               {user ? (
                 <Link
                   to="/dashboard"
-                  className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                  className="px-10 py-5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white text-lg font-bold rounded-2xl hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 transition-all shadow-2xl hover:shadow-indigo-500/50 transform hover:-translate-y-1 hover:scale-105 ring-4 ring-white/20 backdrop-blur-sm"
                 >
-                  Mergi la Dashboard
+                  🚀 Mergi la Dashboard
                 </Link>
               ) : (
                 <>
