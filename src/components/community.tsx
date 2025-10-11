@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { db, auth } from "../firebase";
+import { db } from "../firebase";
+import { useAuth } from "../context/authContext";
 import {
   collection,
   getDocs,
@@ -10,108 +11,106 @@ import {
 } from "firebase/firestore";
 import type { UserProfile } from "../types/user";
 import { FaMapMarkedAlt, FaMicrophone } from "react-icons/fa";
-import { useAuthState } from "react-firebase-hooks/auth";
+import { FiUserPlus, FiCheck } from "react-icons/fi";
 import UserProfileDetails from "./UserProfileDetails";
 
-interface ConnectionModalProps {
-  user: UserProfile;
-  onClose: () => void;
-  onConnect: (role: string) => void;
-}
-
-const ConnectionModal: React.FC<ConnectionModalProps> = ({
-  user,
-  onClose,
-  onConnect,
-}) => {
-  const [selectedRole, setSelectedRole] = useState("");
-
-  const handleRoleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedRole(e.target.value);
-  };
-
-  return (
-    <div className="fixed top-0 left-0 w-full h-full bg-black bg-opacity-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg p-8 max-w-md">
-        <h2 className="text-2xl font-bold mb-4">
-          Connect with {user.displayName}
-        </h2>
-        <div className="mb-4">
-          <label
-            htmlFor="role"
-            className="block text-gray-700 text-sm font-bold mb-2"
-          >
-            Select Role:
-          </label>
-          <select
-            id="role"
-            className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-            value={selectedRole}
-            onChange={handleRoleChange}
-          >
-            <option value="">Select Role</option>
-            <option value="Artist">Artist</option>
-            <option value="Producer">Producer</option>
-            <option value="Studios">Studios</option>
-          </select>
-        </div>
-        <div className="flex justify-end">
-          <button
-            className="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline mr-2"
-            onClick={() => {
-              if (selectedRole) {
-                onConnect(selectedRole);
-              } else {
-                alert("Please select a role before connecting.");
-              }
-            }}
-          >
-            Connect
-          </button>
-          <button
-            className="bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline"
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
 function Community() {
+  const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [genreFilter, setTypeFilter] = useState("");
   const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
-  const [showConnectionModal, setShowConnectionModal] = useState(false);
-  const [connectingUser, setConnectingUser] = useState<UserProfile | null>(
-    null
-  );
-
-  const [currentUser] = useAuthState(auth);
+  const [sendingRequest, setSendingRequest] = useState<string | null>(null);
+  const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
+  const [connectedUsers, setConnectedUsers] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const fetchUsers = async () => {
+    const fetchData = async () => {
       try {
-        const usersRef = collection(db, "users");
-        const q = genreFilter
-          ? query(usersRef, where("genre", "==", genreFilter))
-          : usersRef;
-        const querySnapshot = await getDocs(q);
-        const usersData: UserProfile[] = [];
-        querySnapshot.forEach((doc) => {
-          usersData.push({ uid: doc.id, ...doc.data() } as UserProfile);
-        });
-        setUsers(usersData);
+        if (genreFilter === "studio") {
+          // Fetch studios from the studios collection
+          const studiosRef = collection(db, "studios");
+          const querySnapshot = await getDocs(studiosRef);
+          const studiosData: any[] = [];
+          querySnapshot.forEach((doc) => {
+            const studioData = doc.data();
+            studiosData.push({
+              uid: studioData.ownerId,
+              displayName: studioData.ownerName || "Studio",
+              email: studioData.ownerEmail,
+              photoURL: studioData.ownerAvatar,
+              accountType: "studio",
+              description: studioData.description || "Studio de producție",
+              location: studioData.location || "",
+              genre: studioData.genre || "",
+              rating: studioData.rating || 0,
+              socialLinks: studioData.socialLinks || {},
+              statistics: studioData.statistics || { tracksUploaded: 0, projectsCompleted: 0 },
+              memberSince: studioData.createdAt || "",
+              studioId: doc.id, // ID-ul documentului studio
+            });
+          });
+          setUsers(studiosData);
+        } else {
+          // Fetch regular users
+          const usersRef = collection(db, "users");
+          const q = genreFilter
+            ? query(usersRef, where("accountType", "==", genreFilter))
+            : usersRef;
+          const querySnapshot = await getDocs(q);
+          const usersData: UserProfile[] = [];
+          querySnapshot.forEach((doc) => {
+            usersData.push({ uid: doc.id, ...doc.data() } as UserProfile);
+          });
+          setUsers(usersData);
+        }
       } catch (error) {
-        console.error("Error fetching users", error);
+        console.error("Error fetching data", error);
       }
     };
 
-    fetchUsers();
+    fetchData();
   }, [genreFilter]);
+
+  // Fetch existing requests and connections
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const fetchRequestsAndConnections = async () => {
+      try {
+        // Fetch sent requests
+        const requestsRef = collection(db, "connectionRequests");
+        const sentQuery = query(
+          requestsRef,
+          where("senderId", "==", currentUser.id),
+          where("status", "==", "pending")
+        );
+        const sentSnapshot = await getDocs(sentQuery);
+        const sentIds = new Set<string>();
+        sentSnapshot.forEach((doc) => {
+          sentIds.add(doc.data().receiverId);
+        });
+        setSentRequests(sentIds);
+
+        // Fetch connections
+        const connectionsRef = collection(db, "connections");
+        const connectionsQuery = query(
+          connectionsRef,
+          where("userId", "==", currentUser.id)
+        );
+        const connectionsSnapshot = await getDocs(connectionsQuery);
+        const connectedIds = new Set<string>();
+        connectionsSnapshot.forEach((doc) => {
+          connectedIds.add(doc.data().connectedUserId);
+        });
+        setConnectedUsers(connectedIds);
+      } catch (error) {
+        console.error("Error fetching requests and connections:", error);
+      }
+    };
+
+    fetchRequestsAndConnections();
+  }, [currentUser]);
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
@@ -122,130 +121,255 @@ function Community() {
   };
 
   const handleCloseModal = () => {
-    setSelectedUser(null); // Inchide modulul
+    setSelectedUser(null);
   };
 
-  const handleConnectClick = (user: UserProfile) => {
-    setConnectingUser(user);
-    setShowConnectionModal(true);
-  };
-
-  const handleCloseConnectionModal = () => {
-    setShowConnectionModal(false);
-    setConnectingUser(null);
-  };
-
-  const handleConnect = async (role: string) => {
+  const handleConnectClick = async (targetUser: UserProfile) => {
     if (!currentUser) {
-      alert("You must be logged in to connect.");
-    }
-
-    if (!connectingUser) {
-      alert("No user selected to connect with.");
+      alert("Trebuie să fii autentificat pentru a trimite cereri de conectare.");
       return;
     }
 
+    // Check if already connected
+    if (connectedUsers.has(targetUser.uid)) {
+      console.log("Already connected to this user");
+      return;
+    }
+
+    // Check if request already sent
+    if (sentRequests.has(targetUser.uid)) {
+      console.log("Request already sent to this user");
+      return;
+    }
+
+    setSendingRequest(targetUser.uid);
+
     try {
+      console.log("Sending connection request:", {
+        senderId: currentUser.id,
+        senderName: currentUser.name,
+        receiverId: targetUser.uid,
+        receiverName: targetUser.displayName
+      });
+
+      // Check for existing pending requests
+      const existingRequestQuery = query(
+        collection(db, "connectionRequests"),
+        where("senderId", "==", currentUser.id),
+        where("receiverId", "==", targetUser.uid),
+        where("status", "==", "pending")
+      );
+      const existingSnapshot = await getDocs(existingRequestQuery);
+      
+      if (!existingSnapshot.empty) {
+        console.log("Request already exists");
+        setSentRequests((prev) => new Set(prev).add(targetUser.uid));
+        setSendingRequest(null);
+        return;
+      }
+
       await addDoc(collection(db, "connectionRequests"), {
-        senderId: currentUser?.uid || "",
-        receiverId: connectingUser.uid,
-        role: role,
+        senderId: currentUser.id,
+        senderName: currentUser.name,
+        senderEmail: currentUser.email,
+        senderAvatar: currentUser.avatar || null,
+        senderAccountType: currentUser.accountType,
+        receiverId: targetUser.uid,
+        receiverName: targetUser.displayName || targetUser.email,
         status: "pending",
         createdAt: serverTimestamp(),
       });
 
-      alert("Connection request sent!");
-      handleCloseConnectionModal();
+      setSentRequests((prev) => new Set(prev).add(targetUser.uid));
+      console.log("Connection request sent successfully!");
     } catch (error: any) {
       console.error("Error sending connection request: ", error);
-      alert("Failed to send connection request: " + error.message);
+      alert("Eroare la trimiterea cererii: " + error.message);
+    } finally {
+      setSendingRequest(null);
     }
   };
 
-  const filteredUsers = users.filter(
-    (user) =>
+  const filteredUsers = users.filter((user) => {
+    // Exclude current user from the list
+    if (currentUser && user.uid === currentUser.id) {
+      return false;
+    }
+    
+    // Apply search filter
+    const matchesSearch =
       user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.description?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+      user.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    return matchesSearch;
+  });
 
   return (
-    <div className="container mx-auto py-8">
-      <h2 className="text-3xl font-bold text-gray-800 mb-6">Community</h2>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+      <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+        <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
+        Comunitatea BeatPlanner
+        </h2>
 
-      {/* Filtrul de cautare  */}
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder="Search artists, producers, or studios..."
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus: shadow-outline"
-          value={searchTerm}
-          onChange={handleSearch}
-        />
-      </div>
+        {/* Search Filter */}
+        <div className="mb-6">
+          <label htmlFor="search" className="sr-only">
+            Caută utilizatori
+          </label>
+          <input
+            id="search"
+            type="search"
+            placeholder="Caută artiști, producători..."
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+            value={searchTerm}
+            onChange={handleSearch}
+            aria-label="Caută utilizatori după nume sau descriere"
+          />
+        </div>
 
-      {/* Filtru pentru genul muzical */}
-      <div className="mb-6">
-        <label
-          htmlFor="genre"
-          className="block text-gray-700 text-sm font-bold mb-2"
-        >
-          User type:
-        </label>
-        <select
-          id="type"
-          className="shadow appearance-none border rounded w-full py-2 px-3 text-gray leading-tight focus:outline-none focus:shadow-outline"
-          value={genreFilter}
-          onChange={handleTypeFilterChange}
-        >
-          <option value="Artist">Artist</option>
-          <option value="Produces">Producer</option>
-          <option value="Studio">Studio</option>
-        </select>
-      </div>
+        {/* Type Filter */}
+        <div className="mb-6">
+          <label
+            htmlFor="type"
+            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+          >
+            Tip utilizator:
+          </label>
+          <select
+            id="type"
+            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+            value={genreFilter}
+            onChange={handleTypeFilterChange}
+            aria-label="Filtrează după tipul de utilizator"
+          >
+            <option value="">Toate</option>
+            <option value="artist">Artist</option>
+            <option value="producer">Producător</option>
+            <option value="studio">Studio</option>
+          </select>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredUsers.map((user) => (
-          <div key={user.uid} className="bg-white shadow-md rounded p-4">
-            <h3 className="text-xl font-semibold text-gray-800 mb-2">
-              {user.displayName}
-            </h3>
-            <p className="text-gray-600 mb-3">{user.description}</p>
+        {/* Users Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredUsers.map((user) => {
+            const requestSent = sentRequests.has(user.uid);
+            const isConnected = connectedUsers.has(user.uid);
+            const isSending = sendingRequest === user.uid;
 
-            {/* Afiseaza locatia */}
-            <div className="flex items-center text-gray-500 mb-2">
-              <FaMapMarkedAlt className="mr-1" />
-              <span>{user.location || "Unknown"}</span>
-            </div>
+            return (
+              <div
+                key={user.uid}
+                className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 hover:shadow-lg transition-all cursor-pointer"
+                onClick={() => setSelectedUser(user)}
+              >
+                <div className="flex items-start gap-3 mb-3">
+                  {user.photoURL ? (
+                    <img
+                      src={user.photoURL}
+                      alt={user.displayName || "User"}
+                      className="w-12 h-12 rounded-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold">
+                      {(user.displayName || "U")
+                        .split(" ")
+                        .map((n) => n[0])
+                        .slice(0, 2)
+                        .join("")
+                        .toUpperCase()}
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {user.displayName || "Utilizator"}
+                    </h3>
+                    {user.accountType && (
+                      <span className="text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full">
+                        {user.accountType === "producer" ? "Producător" : "Artist"}
+                      </span>
+                    )}
+                  </div>
+                </div>
 
-            {/* Afiseaza genul muzical */}
-            {user.genre && (
-              <div className="flex items-center text-gray-500 mb-2">
-                <FaMicrophone className="mr-1" />
-                <span>{user.genre}</span>
+                <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-2 text-sm">
+                  {user.description || "Fără descriere"}
+                </p>
+
+                {/* Location */}
+                {user.location && (
+                  <div className="flex items-center text-gray-500 dark:text-gray-400 mb-2">
+                    <FaMapMarkedAlt className="mr-2 text-sm" />
+                    <span className="text-sm">{user.location}</span>
+                  </div>
+                )}
+
+                {/* Genre */}
+                {user.genre && (
+                  <div className="flex items-center text-gray-500 dark:text-gray-400 mb-4">
+                    <FaMicrophone className="mr-2 text-sm" />
+                    <span className="text-sm">{user.genre}</span>
+                  </div>
+                )}
+
+                {/* Connect Button */}
+                {isConnected ? (
+                  <button
+                    disabled
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full bg-green-600 dark:bg-green-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 opacity-75 cursor-not-allowed"
+                  >
+                    <FiCheck />
+                    <span>Conectat</span>
+                  </button>
+                ) : requestSent ? (
+                  <button
+                    disabled
+                    onClick={(e) => e.stopPropagation()}
+                    className="w-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed"
+                  >
+                    <FiCheck />
+                    <span>Cerere trimisă</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleConnectClick(user);
+                    }}
+                    disabled={isSending}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
+                  >
+                    {isSending ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>Se trimite...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FiUserPlus />
+                        <span>Conectează-te</span>
+                      </>
+                    )}
+                  </button>
+                )}
               </div>
-            )}
-            <button
-              className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded mt-2"
-              onClick={() => handleConnectClick(user)}
-            >
-              Connect Now
-            </button>
+            );
+          })}
+        </div>
+
+        {filteredUsers.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500 dark:text-gray-400">
+              Nu s-au găsit utilizatori
+            </p>
           </div>
-        ))}
+        )}
+
+        {/* User Profile Details Modal */}
+        {selectedUser && (
+          <UserProfileDetails user={selectedUser} onClose={handleCloseModal} />
+        )}
       </div>
-
-      {/* Afiseaza modulul */}
-      {selectedUser && (
-        <UserProfileDetails user={selectedUser} onClose={handleCloseModal} />
-      )}
-
-      {showConnectionModal && connectingUser && (
-        <ConnectionModal
-          user={connectingUser}
-          onClose={handleCloseConnectionModal}
-          onConnect={handleConnect}
-        />
-      )}
     </div>
   );
 }
