@@ -15,12 +15,14 @@ const AuthPage: React.FC = () => {
   return (
     <div
       className="min-h-screen flex items-center justify-center 
-        bg-gradient-to-br from-gray-50 to-gray-100 p-6"
+        bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-6 transition-colors"
     >
       <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
         <div className="hidden md:flex flex-col items-start p-8">
-          <h1 className="text-4xl font-extrabold mb-4">Beat Planner</h1>
-          <p className="text-gray-600">
+          <h1 className="text-4xl font-extrabold mb-4 text-gray-900 dark:text-white">
+            BeatPlanner
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300">
             Conectează-te cu artiști, împărtășește track-uri și construiește
             rețeaua ta.
           </p>

@@ -1,3 +1,5 @@
+export type AccountType = "producer" | "artist";
+
 export interface UserProfile {
   genre: any;
   uid: string;
@@ -6,6 +8,7 @@ export interface UserProfile {
   photoURL: string | null;
   description: string;
   rating: number;
+  accountType: AccountType;
   statistics: {
     tracksUploaded: number;
     projectsCompleted: number;
@@ -18,4 +21,27 @@ export interface UserProfile {
   location: string;
   phoneNumber: string | null;
   memberSince: string;
+}
+
+export interface AppUser {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string | null;
+  accountType: AccountType;
+  rating: number;
+  description?: string;
+  genre?: string;
+  location?: string;
+  phoneNumber?: string | null;
+  socialLinks?: {
+    facebook: string | null;
+    instagram: string | null;
+    youtube: string | null;
+  };
+  statistics?: {
+    tracksUploaded: number;
+    projectsCompleted: number;
+  };
+  memberSince?: string;
 }

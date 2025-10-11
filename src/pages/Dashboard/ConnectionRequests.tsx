@@ -1,55 +1,215 @@
 import React, { useEffect, useState } from "react";
-import { getRequests, acceptRequest } from "../../api";
+import { useAuth } from "../../context/authContext";
+import { db } from "../../firebase";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  doc,
+  updateDoc,
+  deleteDoc,
+  addDoc,
+  serverTimestamp,
+} from "firebase/firestore";
+import { FiUserPlus, FiCheck, FiX } from "react-icons/fi";
+
+interface ConnectionRequest {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderEmail: string;
+  senderAvatar: string | null;
+  senderAccountType: string;
+  receiverId: string;
+  receiverName: string;
+  status: "pending" | "accepted" | "rejected";
+  createdAt: any;
+}
 
 const ConnectionRequests: React.FC = () => {
-  const [requests, setRequests] = useState<any[]>([]);
-  useEffect(() => {
-    getRequests()
-      .then(setRequests)
-      .catch(() => {});
-  }, []);
+  const { user } = useAuth();
+  const [requests, setRequests] = useState<ConnectionRequest[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [processing, setProcessing] = useState<string | null>(null);
 
-  const handleAccept = async (id: string) => {
-    setRequests((prev) => prev.filter((r) => r.id !== id));
+  useEffect(() => {
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchRequests = async () => {
+      try {
+        console.log("Fetching requests for user:", user.id);
+        const requestsRef = collection(db, "connectionRequests");
+        const q = query(
+          requestsRef,
+          where("receiverId", "==", user.id),
+          where("status", "==", "pending")
+        );
+        const querySnapshot = await getDocs(q);
+        const requestsData: ConnectionRequest[] = [];
+        querySnapshot.forEach((doc) => {
+          requestsData.push({ id: doc.id, ...doc.data() } as ConnectionRequest);
+        });
+        console.log("Found requests:", requestsData.length);
+        setRequests(requestsData);
+      } catch (error) {
+        console.error("Error fetching requests:", error);
+        alert("Eroare la încărcarea cererilor: " + (error as Error).message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRequests();
+  }, [user]);
+
+  const handleAccept = async (request: ConnectionRequest) => {
+    if (!user) return;
+    
+    setProcessing(request.id);
     try {
-      await acceptRequest(id);
-    } catch (err) {
-      const fresh = await getRequests();
-      setRequests(fresh);
+      // Update request status
+      const requestRef = doc(db, "connectionRequests", request.id);
+      await updateDoc(requestRef, {
+        status: "accepted",
+        acceptedAt: serverTimestamp(),
+      });
+
+      // Create connection in both directions
+      await addDoc(collection(db, "connections"), {
+        userId: user.id,
+        connectedUserId: request.senderId,
+        connectedUserName: request.senderName,
+        connectedUserAvatar: request.senderAvatar,
+        connectedUserAccountType: request.senderAccountType,
+        createdAt: serverTimestamp(),
+      });
+
+      await addDoc(collection(db, "connections"), {
+        userId: request.senderId,
+        connectedUserId: user.id,
+        connectedUserName: user.name,
+        connectedUserAvatar: user.avatar || null,
+        connectedUserAccountType: user.accountType,
+        createdAt: serverTimestamp(),
+      });
+
+      // Remove from local state
+      setRequests((prev) => prev.filter((r) => r.id !== request.id));
+    } catch (error) {
+      console.error("Error accepting request:", error);
+      alert("Eroare la acceptarea cererii");
+    } finally {
+      setProcessing(null);
     }
   };
 
+  const handleReject = async (requestId: string) => {
+    setProcessing(requestId);
+    try {
+      const requestRef = doc(db, "connectionRequests", requestId);
+      await updateDoc(requestRef, {
+        status: "rejected",
+        rejectedAt: serverTimestamp(),
+      });
+
+      // Remove from local state
+      setRequests((prev) => prev.filter((r) => r.id !== requestId));
+    } catch (error) {
+      console.error("Error rejecting request:", error);
+      alert("Eroare la refuzarea cererii");
+    } finally {
+      setProcessing(null);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+      </div>
+    );
+  }
+
   return (
     <div>
-      <h3 className="text-lg font-semibold mb-3">Cererile de Connectare</h3>
+      <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+        <FiUserPlus />
+        Cereri de Conectare
+      </h3>
+      
+      {requests.length === 0 ? (
+        <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/50 rounded-lg">
+          <FiUserPlus className="mx-auto text-4xl text-gray-400 mb-3" />
+          <p className="text-gray-500 dark:text-gray-400">
+            Nu ai cereri de conectare
+          </p>
+        </div>
+      ) : (
       <ul className="space-y-3">
-        {requests.map((r) => (
-          <li
-            key={r.id}
-            className="p-3 border rounded flex 
-                    justify-between items-center"
-          >
-            <div>
-              <div className="font-medium">{r.name}</div>
-              <div className="text-sm text-gray-500">
-                {r.mutual} conexiuni comune
+          {requests.map((request) => (
+            <li
+              key={request.id}
+              className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700"
+            >
+              <div className="flex items-center gap-4">
+                {/* Avatar */}
+                {request.senderAvatar ? (
+                  <img
+                    src={request.senderAvatar}
+                    alt={request.senderName}
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold">
+                    {request.senderName
+                      .split(" ")
+                      .map((n) => n[0])
+                      .slice(0, 2)
+                      .join("")
+                      .toUpperCase()}
+                  </div>
+                )}
+
+                {/* Info */}
+                <div className="flex-1">
+                  <div className="font-medium text-gray-900 dark:text-white">
+                    {request.senderName}
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    {request.senderAccountType === "producer"
+                      ? "Producător"
+                      : "Artist"}
               </div>
             </div>
+
+                {/* Actions */}
             <div className="flex gap-2">
               <button
-                onClick={() => handleAccept(r.id)}
-                className="px-3 py-1 bg-green-500 text-white rounded"
-              >
-                Accept
+                    onClick={() => handleAccept(request)}
+                    disabled={processing === request.id}
+                    className="flex items-center gap-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FiCheck />
+                    <span>Acceptă</span>
+                  </button>
+                  <button
+                    onClick={() => handleReject(request.id)}
+                    disabled={processing === request.id}
+                    className="flex items-center gap-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <FiX />
+                    <span>Refuză</span>
               </button>
-              <button className="px-3 py-1 bg-gray-200 rounded">Refuz</button>
+                </div>
             </div>
           </li>
         ))}
-        {requests.length === 0 && (
-          <li className="text-gray-500">No requests</li>
+        </ul>
         )}
-      </ul>
     </div>
   );
 };
