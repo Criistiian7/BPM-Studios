@@ -46,7 +46,7 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
             type="text"
             required 
             autoComplete="name"
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors" 
+            className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors" 
             placeholder="Numele tău"
             aria-required="true"
           />
@@ -61,7 +61,7 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
             type="email" 
             required 
             autoComplete="email"
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors" 
+            className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors" 
             placeholder="exemplu@email.com"
             aria-required="true"
           />
@@ -77,7 +77,7 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
             required 
             minLength={6}
             autoComplete="new-password"
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors" 
+            className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors" 
             placeholder="Minim 6 caractere"
             aria-required="true"
             aria-describedby="password-hint"
@@ -94,7 +94,7 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
             id="accountType"
             name="accountType" 
             defaultValue="artist" 
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+            className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
             aria-label="Selectează tipul de cont"
           >
             <option value="artist">Artist</option>
@@ -103,17 +103,17 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
         </div>
         <button 
           type="submit" 
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          className="w-full bg-primary-500 hover:bg-primary-600 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-primary-500/30 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
           aria-label="Creează cont nou"
         >
-          Înregistrare
+          🎵 Înregistrează-te
         </button>
       </form>
       <p className="mt-4 text-sm text-center text-gray-600 dark:text-gray-400">
         Ai deja cont?{" "}
         <button 
           onClick={onSwitchToLogin}
-          className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-medium focus:outline-none focus:underline"
+          className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 font-medium focus:outline-none focus:underline"
           aria-label="Mergi la pagina de autentificare"
         >
           Logare
