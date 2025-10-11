@@ -1,6 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import AuthPage from "./pages/AuthPage";
+import AuthPage from "./pages/authPage";
 import Dashboard from "./pages/Dashboard";
 import ProfileEdit from "./pages/ProfileEdit";
 
