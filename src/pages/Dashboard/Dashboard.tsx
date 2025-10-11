@@ -6,20 +6,37 @@ import ProfileCard from "./ProfileCard";
 
 const Dashboard: React.FC = () => {
   const { user, loading } = useAuth();
-  if (loading) return <div className="p-6">Loading...</div>;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-6xl mx-auto p-6">
-        <ProfileCard />
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="mt-2 text-gray-600">Bine ai venit, {user.name}</p>
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
+      <div className="max-w-6xl mx-auto p-6 space-y-6">
         <div>
-          <Tabs />
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+            Dashboard
+          </h1>
+          <p className="text-gray-600 dark:text-gray-400">
+            Bine ai venit, {user.name.split(' ')[0]}
+          </p>
         </div>
+        
+        <ProfileCard />
+        
+        <Tabs />
       </div>
     </div>
   );

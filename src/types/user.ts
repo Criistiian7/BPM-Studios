@@ -30,4 +30,18 @@ export interface AppUser {
   avatar?: string | null;
   accountType: AccountType;
   rating: number;
+  description?: string;
+  genre?: string;
+  location?: string;
+  phoneNumber?: string | null;
+  socialLinks?: {
+    facebook: string | null;
+    instagram: string | null;
+    youtube: string | null;
+  };
+  statistics?: {
+    tracksUploaded: number;
+    projectsCompleted: number;
+  };
+  memberSince?: string;
 }
