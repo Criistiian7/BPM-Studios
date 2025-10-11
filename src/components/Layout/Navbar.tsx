@@ -19,6 +19,11 @@ const Navbar: React.FC = () => {
             <Link to="/tracks" className="text-gray-600 hover:text-gray-900">
               Tracks
             </Link>
+            {user?.accountType === "producer" && (
+              <Link to="/studio" className="text-gray-600 hover:text-gray-900">
+                Studio
+              </Link>
+            )}
           </div>
 
           <div className="flex items-center space-x-3">
