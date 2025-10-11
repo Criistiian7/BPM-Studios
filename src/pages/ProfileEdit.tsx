@@ -1,44 +1,24 @@
-import React, { useState } from "react";
+import React from "react";
 import { useAuth } from "../context/authContext";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 const ProfileEdit: React.FC = () => {
-  const { user, login } = useAuth();
-  const navigate = useNavigate();
-  const [name, setName] = useState(user?.name ?? "");
-  const [email, setEmail] = useState(user?.email ?? "");
+  const { user } = useAuth();
 
-  const handleSave = () => {
-    const updated = { ...user, name, email };
-    login(updated);
-    navigate("/dashboard");
-  };
+  if (!user) return null;
 
   return (
     <div className="max-w-md mx-auto p-6 bg-white rounded shadow">
-      <h2 className="text-xl font-semibold mb-4"> Edit Profile</h2>
-      <div className="space-y-3">
-        <input
-          placeholder="Name"
-          className="w-full px-3 py-2 border rounded"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <input
-          placeholder="Email"
-          className="w-full px-3 py-2 border rounded"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <div className="flex gap-2">
-          <button
-            onClick={handleSave}
-            className="px-4 py-2 bg-indigo-600 
-            text-white rounded"
-          >
-            Save
-          </button>
-        </div>
+      <h2 className="text-xl font-semibold mb-2">Profil</h2>
+      <p className="text-gray-600 mb-4">Editarea profilului a fost dezactivată aici. Folosește viitoarea pagină dedicată profilului.</p>
+      <div className="space-y-2">
+        <div className="font-medium">{user.name}</div>
+        <div className="text-sm text-gray-500">{user.email}</div>
+        <div className="text-sm">Tip cont: {user.accountType === "producer" ? "Producător" : "Artist"}</div>
+        <div className="text-sm">Rating: {user.rating.toFixed(1)}</div>
+      </div>
+      <div className="mt-4">
+        <Link to="/dashboard" className="text-indigo-600">Înapoi la Dashboard</Link>
       </div>
     </div>
   );

@@ -14,12 +14,12 @@ const Tabs: React.FC = () => {
             <div className="bg-white rounded shadow">
                 <div className="flex space-x-2 border-b bg-gray-50">
                     <button type="button" className={tabClass("tracks")} 
-                    onClick={() => setActive("tracks")}>My tracks</button>
+                    onClick={() => setActive("tracks")}>Tracks</button>
                     <button type="button" className={tabClass("contacts")} 
-                    onClick={() => setActive("tracks")}>My Contacts</button>
+                    onClick={() => setActive("contacts")}>Contacts</button>
                     <button type="button" className={tabClass("requests")} 
-                    onClick={() => setActive("tracks")}>Cererile de Connectare</button>
-                     </div>   
+                    onClick={() => setActive("requests")}>Requests</button>
+                </div>   
                     
                     <div className="p-6">
                         {active === "tracks" && <MyTracks />}
