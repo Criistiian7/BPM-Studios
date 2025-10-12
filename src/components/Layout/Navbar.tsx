@@ -22,36 +22,42 @@ const Navbar: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Load theme preference from localStorage
+  // Load theme preference from localStorage and apply immediately
   useEffect(() => {
     const savedTheme = localStorage.getItem("theme");
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    const isDark = savedTheme === "dark" || (!savedTheme && prefersDark);
+    const shouldBeDark = savedTheme === "dark" || (!savedTheme && prefersDark);
     
-    setIsDarkMode(isDark);
-    
-    // Apply theme to HTML element immediately
-    if (isDark) {
+    // Apply to HTML first
+    if (shouldBeDark) {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
+    
+    // Then update state
+    setIsDarkMode(shouldBeDark);
   }, []);
 
   const toggleTheme = () => {
+    // Calculate new mode
     const newMode = !isDarkMode;
     
-    // Update state
-    setIsDarkMode(newMode);
+    console.log("Toggling theme from", isDarkMode, "to", newMode);
     
-    // Apply immediately to HTML
+    // Apply to DOM immediately (sync)
     if (newMode) {
       document.documentElement.classList.add("dark");
       localStorage.setItem("theme", "dark");
+      console.log("Applied dark mode");
     } else {
       document.documentElement.classList.remove("dark");
       localStorage.setItem("theme", "light");
+      console.log("Applied light mode");
     }
+    
+    // Update state last
+    setIsDarkMode(newMode);
   };
 
   const handleLogout = async () => {
@@ -62,10 +68,10 @@ const Navbar: React.FC = () => {
   const isActive = (path: string) => location.pathname === path;
 
   const navLinkClass = (path: string) => `
-    flex items-center gap-2 px-4 py-2 rounded-lg transition-colors
+    flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all font-medium
     ${isActive(path) 
-      ? "bg-indigo-600 text-white" 
-      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+      ? "bg-primary-500 text-white shadow-lg shadow-primary-500/30" 
+      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/50"
     }
   `;
 
@@ -79,7 +85,7 @@ const Navbar: React.FC = () => {
   };
 
   return (
-    <nav className="bg-white dark:bg-gray-900 shadow-md transition-colors">
+    <nav className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-gray-800 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -89,7 +95,7 @@ const Navbar: React.FC = () => {
               alt="BeatPlanner" 
               className="w-10 h-10"
             />
-            <span className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
+            <span className="text-xl font-bold text-primary-600 dark:text-primary-400">
               BeatPlanner
             </span>
           </Link>
@@ -128,7 +134,7 @@ const Navbar: React.FC = () => {
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
-              className="p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              className="p-2.5 rounded-full bg-yellow-100 dark:bg-slate-800 text-yellow-600 dark:text-blue-400 hover:bg-yellow-200 dark:hover:bg-slate-700 transition-all shadow-sm"
               aria-label="Toggle theme"
             >
               {isDarkMode ? (
@@ -208,7 +214,7 @@ const Navbar: React.FC = () => {
             ) : (
               <Link
                 to="/auth"
-                className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+                className="px-5 py-2.5 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-all font-medium shadow-lg shadow-primary-500/30"
               >
                 Login
               </Link>

@@ -7,16 +7,13 @@ const Home: React.FC = () => {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-slate-900">
       {/* Hero Section */}
       <section className="relative overflow-hidden min-h-[600px]">
         {/* Background Image with Overlay */}
         <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
-          style={{
-            backgroundImage: 'url("/studio-bg.jpg")',
-            filter: 'brightness(0.4) blur(2px)',
-          }}
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat brightness-[0.4] blur-[2px]"
+          style={{ backgroundImage: 'url("/studio-bg.jpg")' }}
         />
         <div className="absolute inset-0 bg-gradient-to-b from-purple-900/60 via-pink-900/40 to-gray-900/90" />
         
@@ -46,21 +43,21 @@ const Home: React.FC = () => {
               {user ? (
                 <Link
                   to="/dashboard"
-                  className="px-10 py-5 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white text-lg font-bold rounded-2xl hover:from-indigo-600 hover:via-purple-600 hover:to-pink-600 transition-all shadow-2xl hover:shadow-indigo-500/50 transform hover:-translate-y-1 hover:scale-105 ring-4 ring-white/20 backdrop-blur-sm"
+                  className="px-10 py-5 bg-primary-500 text-white text-lg font-bold rounded-2xl hover:bg-primary-600 transition-all shadow-2xl shadow-primary-500/40 transform hover:-translate-y-1 hover:scale-105"
                 >
-                  🚀 Mergi la Dashboard
+                  Începe Acum →
                 </Link>
               ) : (
                 <>
                   <Link
                     to="/auth"
-                    className="px-8 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+                    className="px-8 py-4 bg-primary-500 text-white font-semibold rounded-xl hover:bg-primary-600 transition-all shadow-xl shadow-primary-500/40 transform hover:-translate-y-0.5"
                   >
                     Începe Gratuit
                   </Link>
                   <Link
                     to="/community"
-                    className="px-8 py-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-semibold rounded-xl border-2 border-indigo-600 dark:border-purple-500 hover:bg-indigo-50 dark:hover:bg-gray-700 transition-all shadow-lg"
+                    className="px-8 py-4 bg-white/10 dark:bg-gray-800/50 text-white font-semibold rounded-xl border-2 border-white/30 dark:border-gray-700 hover:bg-white/20 dark:hover:bg-gray-700/70 backdrop-blur-sm transition-all shadow-lg"
                   >
                     Explorează Comunitatea
                   </Link>
@@ -77,7 +74,7 @@ const Home: React.FC = () => {
       </section>
 
       {/* Features Section */}
-      <section className="py-20 bg-white dark:bg-gray-800">
+      <section className="py-20 bg-white dark:bg-slate-800 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold text-gray-900 dark:text-white mb-4">
@@ -191,7 +188,7 @@ const Home: React.FC = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
+      <footer className="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-white py-12 transition-colors">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
