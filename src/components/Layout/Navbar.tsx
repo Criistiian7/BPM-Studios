@@ -27,14 +27,14 @@ const Navbar: React.FC = () => {
     const savedTheme = localStorage.getItem("theme");
     const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     const shouldBeDark = savedTheme === "dark" || (!savedTheme && prefersDark);
-    
+
     // Apply to HTML first
     if (shouldBeDark) {
       document.documentElement.classList.add("dark");
     } else {
       document.documentElement.classList.remove("dark");
     }
-    
+
     // Then update state
     setIsDarkMode(shouldBeDark);
   }, []);
@@ -42,9 +42,9 @@ const Navbar: React.FC = () => {
   const toggleTheme = () => {
     // Calculate new mode
     const newMode = !isDarkMode;
-    
+
     console.log("Toggling theme from", isDarkMode, "to", newMode);
-    
+
     // Apply to DOM immediately (sync)
     if (newMode) {
       document.documentElement.classList.add("dark");
@@ -55,7 +55,7 @@ const Navbar: React.FC = () => {
       localStorage.setItem("theme", "light");
       console.log("Applied light mode");
     }
-    
+
     // Update state last
     setIsDarkMode(newMode);
   };
@@ -69,8 +69,8 @@ const Navbar: React.FC = () => {
 
   const navLinkClass = (path: string) => `
     flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all font-medium
-    ${isActive(path) 
-      ? "bg-primary-500 text-white shadow-lg shadow-primary-500/30" 
+    ${isActive(path)
+      ? "bg-primary-500 text-white shadow-lg shadow-primary-500/30"
       : "text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/50"
     }
   `;
@@ -90,9 +90,9 @@ const Navbar: React.FC = () => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-3">
-            <img 
-              src="/logo.svg" 
-              alt="BeatPlanner" 
+            <img
+              src="/logo.svg"
+              alt="BeatPlanner"
               className="w-10 h-10"
             />
             <span className="text-xl font-bold text-primary-600 dark:text-primary-400">
@@ -102,23 +102,23 @@ const Navbar: React.FC = () => {
 
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-2">
-            <Link to="/" className={navLinkClass("/")}>
-              <FiHome className="text-lg" />
-              <span>Home</span>
-            </Link>
-            
+
             {user && (
               <>
+                <Link to="/" className={navLinkClass("/")}>
+                  <FiHome className="text-lg" />
+                  <span>Home</span>
+                </Link>
                 <Link to="/profile" className={navLinkClass("/profile")}>
                   <FiUser className="text-lg" />
                   <span>Profil</span>
                 </Link>
-                
+
                 <Link to="/community" className={navLinkClass("/community")}>
                   <FiUsers className="text-lg" />
                   <span>Comunitate</span>
                 </Link>
-                
+
                 {user.accountType === "producer" && (
                   <Link to="/studio" className={navLinkClass("/studio")}>
                     <FiMic className="text-lg" />
@@ -228,19 +228,19 @@ const Navbar: React.FC = () => {
             <FiHome />
             <span>Home</span>
           </Link>
-          
+
           {user && (
             <>
               <Link to="/profile" className={navLinkClass("/profile") + " text-sm"}>
                 <FiUser />
                 <span>Profil</span>
               </Link>
-              
+
               <Link to="/community" className={navLinkClass("/community") + " text-sm"}>
                 <FiUsers />
                 <span>Comunitate</span>
               </Link>
-              
+
               {user.accountType === "producer" && (
                 <Link to="/studio" className={navLinkClass("/studio") + " text-sm"}>
                   <FiMic />

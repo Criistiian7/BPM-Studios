@@ -23,6 +23,7 @@ type AuthContextType = {
   ) => Promise<void>;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -35,7 +36,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const navigate = useNavigate();
 
   useEffect(() => {
-    console.log(user);
   }, [user]);
 
   useEffect(() => {
@@ -91,7 +91,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     const cred = await createUserWithEmailAndPassword(auth, email, password);
     if (cred.user) {
       if (name) {
-        await updateProfile(cred.user, { displayName: name }).catch(() => {});
+        await updateProfile(cred.user, { displayName: name }).catch(() => { });
       }
       // Create a basic profile document in Firestore
       const userRef = doc(db, "users", cred.user.uid);
@@ -120,15 +120,49 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     await signOut(auth);
   };
 
+  const refreshUser = async () => {
+    if (!auth.currentUser) return;
+
+    try {
+      const userRef = doc(db, "users", auth.currentUser.uid);
+      const snap = await getDoc(userRef);
+
+      if (snap.exists()) {
+        const profile = snap.data();
+        const accountType = (profile?.accountType ?? "artist") as AccountType;
+        const rating = typeof profile?.rating === "number" ? profile!.rating : 0;
+
+        setUser({
+          id: auth.currentUser.uid,
+          name: profile?.displayName || auth.currentUser.displayName || "User",
+          email: auth.currentUser.email ?? "",
+          avatar: profile?.photoURL || auth.currentUser.photoURL || null,
+          accountType,
+          rating,
+          description: profile?.description ?? "",
+          genre: profile?.genre ?? "",
+          location: profile?.location ?? "",
+          phoneNumber: profile?.phoneNumber ?? null,
+          socialLinks: profile?.socialLinks ?? { facebook: null, instagram: null, youtube: null },
+          statistics: profile?.statistics ?? { tracksUploaded: 0, projectsCompleted: 0 },
+          memberSince: profile?.memberSince ?? "",
+        });
+
+      }
+    } catch (error) {
+      console.error("Error refreshing user data:", error);
+    }
+  };
+
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, register, login, logout }}
+      value={{ user, loading, register, login, logout, refreshUser }} // ✅ ADAUGĂ refreshUser
     >
       {children}
     </AuthContext.Provider>
   );
 };
-
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");

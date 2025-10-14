@@ -2,9 +2,33 @@ import React from "react";
 import { useAuth } from "../../context/authContext";
 import { FiStar, FiMail, FiMapPin, FiPhone } from "react-icons/fi";
 import { FaFacebook, FaInstagram, FaYoutube, FaMicrophone } from "react-icons/fa";
+import { collection, query, where, getDocs } from "firebase/firestore";
+import { db } from "../../firebase";
 
 const ProfileCard: React.FC = () => {
   const { user } = useAuth();
+  const [trackCount, setTrackCount] = React.useState<number>(0);
+  const [loadingTracks, setLoadingTracks] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!user) return;
+
+    const fetchTrackCount = async () => {
+      try {
+        const tracksRef = collection(db, "tracks");
+        const q = query(tracksRef, where("ownerId", "==", user.id));
+        const snapshot = await getDocs(q);
+        setTrackCount(snapshot.size);
+      } catch (error) {
+        console.error("Error counting tracks:", error);
+        setTrackCount(0);
+      } finally {
+        setLoadingTracks(false);
+      }
+    };
+
+    fetchTrackCount();
+  }, [user]);
 
   if (!user) return null;
 
@@ -165,7 +189,11 @@ const ProfileCard: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
                 <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                  {user.statistics.tracksUploaded || 0}
+                  {loadingTracks ? (
+                    <div className="animate-pulse">...</div>
+                  ) : (
+                    trackCount
+                  )}
                 </div>
                 <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                   Track-uri
@@ -173,7 +201,7 @@ const ProfileCard: React.FC = () => {
               </div>
               <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
                 <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {user.statistics.projectsCompleted || 0}
+                  {user.statistics?.projectsCompleted || 0}
                 </div>
                 <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                   Proiecte

@@ -74,7 +74,7 @@ const ConnectionRequests: React.FC = () => {
 
   const handleAccept = async (request: ConnectionRequest) => {
     if (!user) return;
-    
+
     setProcessing(request.id);
     try {
       // Check if connection already exists to prevent duplicates
@@ -84,7 +84,7 @@ const ConnectionRequests: React.FC = () => {
         where("connectedUserId", "==", request.senderId)
       );
       const existingSnapshot = await getDocs(existingConnectionQuery);
-      
+
       if (!existingSnapshot.empty) {
         console.log("Connection already exists, skipping creation");
         // Just update request status and remove from UI
@@ -178,9 +178,9 @@ const ConnectionRequests: React.FC = () => {
     <div>
       <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
         <FiUserPlus />
-        Cereri de Conectare ({requests.length})
+        Cereri de Conectare
       </h3>
-      
+
       {requests.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/50 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
           <FiUserPlus className="mx-auto text-5xl text-gray-400 mb-4" />
@@ -192,7 +192,7 @@ const ConnectionRequests: React.FC = () => {
           </p>
         </div>
       ) : (
-      <ul className="space-y-3">
+        <ul className="space-y-3">
           {requests.map((request) => (
             <li
               key={request.id}
@@ -226,12 +226,12 @@ const ConnectionRequests: React.FC = () => {
                     {request.senderAccountType === "producer"
                       ? "Producător"
                       : "Artist"}
-              </div>
-            </div>
+                  </div>
+                </div>
 
                 {/* Actions */}
-            <div className="flex gap-2">
-              <button
+                <div className="flex gap-2">
+                  <button
                     onClick={() => handleAccept(request)}
                     disabled={processing === request.id}
                     className="flex items-center gap-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -246,13 +246,13 @@ const ConnectionRequests: React.FC = () => {
                   >
                     <FiX />
                     <span>Refuză</span>
-              </button>
+                  </button>
                 </div>
-            </div>
-          </li>
-        ))}
+              </div>
+            </li>
+          ))}
         </ul>
-        )}
+      )}
     </div>
   );
 };

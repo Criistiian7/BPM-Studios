@@ -10,19 +10,46 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import type { UserProfile } from "../types/user";
-import { FaMapMarkedAlt, FaMicrophone } from "react-icons/fa";
-import { FiUserPlus, FiCheck } from "react-icons/fi";
-import UserProfileDetails from "./UserProfileDetails";
+import { FiUserPlus, FiCheck, FiUsers, FiHome, FiMapPin, FiStar } from "react-icons/fi";
+import { useNavigate } from "react-router-dom";
+import { slugify } from "../utils/slugify";
 
 function Community() {
   const { user: currentUser } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [genreFilter, setTypeFilter] = useState("");
-  const [selectedUser, setSelectedUser] = useState<UserProfile | null>(null);
   const [sendingRequest, setSendingRequest] = useState<string | null>(null);
   const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
   const [connectedUsers, setConnectedUsers] = useState<Set<string>>(new Set());
+  const [artistsProducersCount, setArtistsProducersCount] = useState(0);
+  const [studiosCount, setStudiosCount] = useState(0);
+  const navigate = useNavigate();
+
+  // Fetch total counts pentru tab toggler
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        // Count artists & producers
+        const usersRef = collection(db, "users");
+        const usersSnapshot = await getDocs(usersRef);
+        const artistsProducers = usersSnapshot.docs.filter(doc => {
+          const accountType = doc.data().accountType;
+          return accountType === "artist" || accountType === "producer";
+        });
+        setArtistsProducersCount(artistsProducers.length);
+
+        // Count studios
+        const studiosRef = collection(db, "studios");
+        const studiosSnapshot = await getDocs(studiosRef);
+        setStudiosCount(studiosSnapshot.size);
+      } catch (error) {
+        console.error("Error fetching counts:", error);
+      }
+    };
+
+    fetchCounts();
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -116,14 +143,6 @@ function Community() {
     setSearchTerm(e.target.value);
   };
 
-  const handleTypeFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setTypeFilter(e.target.value);
-  };
-
-  const handleCloseModal = () => {
-    setSelectedUser(null);
-  };
-
   const handleConnectClick = async (targetUser: UserProfile) => {
     if (!currentUser) {
       alert("Trebuie să fii autentificat pentru a trimite cereri de conectare.");
@@ -160,7 +179,7 @@ function Community() {
         where("status", "==", "pending")
       );
       const existingSnapshot = await getDocs(existingRequestQuery);
-      
+
       if (!existingSnapshot.empty) {
         console.log("Request already exists");
         setSentRequests((prev) => new Set(prev).add(targetUser.uid));
@@ -195,12 +214,12 @@ function Community() {
     if (currentUser && user.uid === currentUser.id) {
       return false;
     }
-    
+
     // Apply search filter
     const matchesSearch =
       user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     return matchesSearch;
   });
 
@@ -208,7 +227,7 @@ function Community() {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
       <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
-        Comunitatea BeatPlanner
+          Comunitatea BeatPlanner
         </h2>
 
         {/* Search Filter */}
@@ -227,26 +246,30 @@ function Community() {
           />
         </div>
 
-        {/* Type Filter */}
+        {/* Tab Toggler pentru tip utilizator cu contori dinamici */}
         <div className="mb-6">
-          <label
-            htmlFor="type"
-            className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-          >
-            Tip utilizator:
-          </label>
-          <select
-            id="type"
-            className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
-            value={genreFilter}
-            onChange={handleTypeFilterChange}
-            aria-label="Filtrează după tipul de utilizator"
-          >
-            <option value="">Toate</option>
-            <option value="artist">Artist</option>
-            <option value="producer">Producător</option>
-            <option value="studio">Studio</option>
-          </select>
+          <div className="flex bg-gray-200 dark:bg-gray-700 rounded-lg p-1">
+            <button
+              onClick={() => setTypeFilter("")}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md font-medium transition-all ${genreFilter === ""
+                ? "bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                }`}
+            >
+              <FiUsers className="text-lg" />
+              <span>Artiști & Producători ({artistsProducersCount})</span>
+            </button>
+            <button
+              onClick={() => setTypeFilter("studio")}
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md font-medium transition-all ${genreFilter === "studio"
+                ? "bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm"
+                : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
+                }`}
+            >
+              <FiHome className="text-lg" />
+              <span>Studiouri ({studiosCount})</span>
+            </button>
+          </div>
         </div>
 
         {/* Users Grid */}
@@ -259,18 +282,22 @@ function Community() {
             return (
               <div
                 key={user.uid}
-                className="bg-white dark:bg-gray-800 shadow-md rounded-lg p-6 hover:shadow-lg transition-all cursor-pointer"
-                onClick={() => setSelectedUser(user)}
+                className="bg-white dark:bg-gray-800 shadow-lg rounded-xl p-6 hover:shadow-xl transition-all cursor-pointer border border-gray-100 dark:border-gray-700"
+                onClick={() => {
+                  const slug = user.slug || `${slugify(user.displayName || 'user')}-${user.uid.substring(0, 6)}`;
+                  navigate(`/profile/${slug}`);
+                }}
               >
-                <div className="flex items-start gap-3 mb-3">
+                {/* Avatar */}
+                <div className="flex justify-center mb-4">
                   {user.photoURL ? (
                     <img
                       src={user.photoURL}
                       alt={user.displayName || "User"}
-                      className="w-12 h-12 rounded-full object-cover"
+                      className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
                     />
                   ) : (
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-semibold border-2 border-gray-200 dark:border-gray-600">
                       {(user.displayName || "U")
                         .split(" ")
                         .map((n) => n[0])
@@ -279,39 +306,41 @@ function Community() {
                         .toUpperCase()}
                     </div>
                   )}
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                      {user.displayName || "Utilizator"}
-                    </h3>
-                    {user.accountType && (
-                      <span className="text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-2 py-0.5 rounded-full">
-                        {user.accountType === "producer" ? "Producător" : "Artist"}
-                      </span>
-                    )}
+                </div>
+
+                {/* Nume */}
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center mb-2">
+                  {user.displayName || "Utilizator"}
+                </h3>
+
+                {/* Tip cont și Rating */}
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.accountType === "producer"
+                    ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                    : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                    }`}>
+                    {user.accountType === "producer" ? "Producător" : "Artist"}
+                  </span>
+                  <div className="flex items-center gap-1 text-yellow-500">
+                    <FiStar className="fill-current text-sm" />
+                    <span className="text-sm font-semibold">{user.rating?.toFixed(1) || "0.0"}</span>
                   </div>
                 </div>
 
-                <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-2 text-sm">
+                {/* Descriere */}
+                <p className="text-gray-600 dark:text-gray-400 text-sm text-center mb-3 line-clamp-2">
                   {user.description || "Fără descriere"}
                 </p>
 
-                {/* Location */}
+                {/* Locație */}
                 {user.location && (
-                  <div className="flex items-center text-gray-500 dark:text-gray-400 mb-2">
-                    <FaMapMarkedAlt className="mr-2 text-sm" />
+                  <div className="flex items-center justify-center gap-1 text-gray-500 dark:text-gray-400 mb-4">
+                    <FiMapPin className="text-sm" />
                     <span className="text-sm">{user.location}</span>
                   </div>
                 )}
 
-                {/* Genre */}
-                {user.genre && (
-                  <div className="flex items-center text-gray-500 dark:text-gray-400 mb-4">
-                    <FaMicrophone className="mr-2 text-sm" />
-                    <span className="text-sm">{user.genre}</span>
-                  </div>
-                )}
-
-                {/* Connect Button */}
+                {/* Buton Conectare */}
                 {isConnected ? (
                   <button
                     disabled
@@ -365,10 +394,6 @@ function Community() {
           </div>
         )}
 
-        {/* User Profile Details Modal */}
-        {selectedUser && (
-          <UserProfileDetails user={selectedUser} onClose={handleCloseModal} />
-        )}
       </div>
     </div>
   );
