@@ -97,7 +97,7 @@ const Studio: React.FC = () => {
       } catch (error) {
         console.error("Error loading studio:", error);
       } finally {
-        setInitializing(false);
+      setInitializing(false);
       }
     };
 
@@ -146,7 +146,7 @@ const Studio: React.FC = () => {
         name: editName.trim(),
         description: editDescription.trim(),
         photoURL: editPhotoURL,
-        updatedAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
       };
 
       await setDoc(studioRef, updatedStudio, { merge: true });
@@ -398,7 +398,7 @@ const Studio: React.FC = () => {
               >
                 <FiX className="text-xl" />
               </button>
-            </div>
+        </div>
 
             <div className="p-6 space-y-6">
               {/* Avatar Upload */}
@@ -416,9 +416,9 @@ const Studio: React.FC = () => {
                   ) : (
                     <div className="w-24 h-24 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white">
                       <FiMusic className="text-3xl" />
-                    </div>
+          </div>
                   )}
-                  <div>
+          <div>
                     <label
                       htmlFor="studio-avatar-upload"
                       className="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg cursor-pointer transition-colors text-sm font-medium"
@@ -437,8 +437,8 @@ const Studio: React.FC = () => {
                       PNG, JPG până la 5MB
                     </p>
                   </div>
-                </div>
-              </div>
+          </div>
+        </div>
 
               {/* Studio Name */}
               <div>
@@ -459,22 +459,22 @@ const Studio: React.FC = () => {
               </div>
 
               {/* Description */}
-              <div>
+          <div>
                 <label
                   htmlFor="studio-description"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                 >
                   Descriere
                 </label>
-                <textarea
+            <textarea
                   id="studio-description"
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
                   rows={6}
                   className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors resize-none"
                   placeholder="Descrie studioul tău, echipamentul, serviciile oferite..."
-                />
-              </div>
+            />
+          </div>
             </div>
 
             <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
@@ -490,9 +490,9 @@ const Studio: React.FC = () => {
                 className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
               >
                 {saving ? "Se salvează..." : "Salvează"}
-              </button>
-            </div>
+            </button>
           </div>
+      </div>
         </div>
       )}
     </div>

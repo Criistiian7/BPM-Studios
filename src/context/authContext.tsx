@@ -35,6 +35,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log(user);
+  }, [user]);
+
+  useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (fbUser: User | null) => {
       if (fbUser) {
         try {
@@ -58,6 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             statistics: profile?.statistics ?? { tracksUploaded: 0, projectsCompleted: 0 },
             memberSince: profile?.memberSince ?? "",
           });
+          navigate("/dashboard");
         } catch (err) {
           setUser({
             id: fbUser.uid,
@@ -70,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         }
       } else {
         setUser(null);
+        navigate("/auth");
       }
       setLoading(false);
     });
@@ -109,12 +115,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const login = async (email: string, password: string) => {
     await signInWithEmailAndPassword(auth, email, password);
-    navigate("/dashboard");
   };
-
   const logout = async () => {
     await signOut(auth);
-    navigate("/auth");
   };
 
   return (
