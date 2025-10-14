@@ -62,7 +62,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
             statistics: profile?.statistics ?? { tracksUploaded: 0, projectsCompleted: 0 },
             memberSince: profile?.memberSince ?? "",
           });
-          navigate("/dashboard");
+          navigate("/profile");
         } catch (err) {
           setUser({
             id: fbUser.uid,
@@ -113,42 +113,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-const login = async (email: string, password: string) => {
-  await signInWithEmailAndPassword(auth, email, password);
-  
-  // Așteaptă ca onAuthStateChanged să seteze user-ul
-  await new Promise<void>((resolve) => {
-    const unsubscribe = onAuthStateChanged(auth, (fbUser) => {
-      if (fbUser) {
-        unsubscribe();
-        resolve();
-      }
-    });
-  });
-  
-  navigate("/dashboard");
-};
-
-const [email, setEmail] = useState("");
-const [password, setPassword] = useState("");
-
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError(null);
-  try {
-    await login(email, password);
-  } catch (err: any) {
-    setError(err.message ?? "Login failed");
-  }
-};
-
-// În inputs:
-<input 
-  value={email}
-  onChange={(e) => setEmail(e.target.value)}
-  // ... rest
-/>
-
+  const login = async (email: string, password: string) => {
+    await signInWithEmailAndPassword(auth, email, password);
+  };
   const logout = async () => {
     await signOut(auth);
   };

@@ -42,7 +42,7 @@ const Home: React.FC = () => {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               {user ? (
                 <Link
-                  to="/dashboard"
+                  to="/profile"
                   className="px-10 py-5 bg-primary-500 text-white text-lg font-bold rounded-2xl hover:bg-primary-600 transition-all shadow-2xl shadow-primary-500/40 transform hover:-translate-y-1 hover:scale-105"
                 >
                   Începe Acum →
@@ -203,7 +203,7 @@ const Home: React.FC = () => {
             <div>
               <h3 className="font-semibold mb-4">Link-uri Rapide</h3>
               <ul className="space-y-2 text-gray-400">
-                <li><Link to="/dashboard" className="hover:text-white transition-colors">Dashboard</Link></li>
+                <li><Link to="/profile" className="hover:text-white transition-colors">Profil</Link></li>
                 <li><Link to="/community" className="hover:text-white transition-colors">Comunitate</Link></li>
                 <li><Link to="/auth" className="hover:text-white transition-colors">Autentificare</Link></li>
               </ul>

@@ -15,10 +15,10 @@ export const useUsers = () => {
       setLoading(true);
       setError(null);
       try {
-        let q = collection(db, "users");
-        if (genreFilter) {
-          q = query(q, where("genre", "==", genreFilter));
-        }
+        const baseRef = collection(db, "users");
+        const q = genreFilter
+          ? query(baseRef, where("genre", "==", genreFilter))
+          : baseRef;
         const querySnapshot = await getDocs(q);
         const usersData: UserProfile[] = [];
         querySnapshot.forEach((doc) => {

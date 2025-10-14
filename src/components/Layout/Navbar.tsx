@@ -109,9 +109,9 @@ const Navbar: React.FC = () => {
             
             {user && (
               <>
-                <Link to="/dashboard" className={navLinkClass("/dashboard")}>
+                <Link to="/profile" className={navLinkClass("/profile")}>
                   <FiUser className="text-lg" />
-                  <span>Dashboard</span>
+                  <span>Profil</span>
                 </Link>
                 
                 <Link to="/community" className={navLinkClass("/community")}>
@@ -231,9 +231,9 @@ const Navbar: React.FC = () => {
           
           {user && (
             <>
-              <Link to="/dashboard" className={navLinkClass("/dashboard") + " text-sm"}>
+              <Link to="/profile" className={navLinkClass("/profile") + " text-sm"}>
                 <FiUser />
-                <span>Dashboard</span>
+                <span>Profil</span>
               </Link>
               
               <Link to="/community" className={navLinkClass("/community") + " text-sm"}>
