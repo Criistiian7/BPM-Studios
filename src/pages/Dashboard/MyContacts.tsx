@@ -3,8 +3,8 @@ import { useAuth } from "../../context/authContext";
 import { db } from "../../firebase";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { FiUsers, FiMail, FiStar } from "react-icons/fi";
-import UserProfileDetails from "../../components/UserProfileDetails";
-import type { UserProfile } from "../../types/user";
+import { useNavigate } from "react-router-dom";
+import { slugify } from "../../utils/slugify";
 
 interface Connection {
   id: string;
@@ -18,11 +18,13 @@ interface Connection {
   createdAt: any;
 }
 
+
 const MyContacts: React.FC = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [contacts, setContacts] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedContact, setSelectedContact] = useState<UserProfile | null>(null);
+
 
   useEffect(() => {
     if (!user) return;
@@ -33,13 +35,13 @@ const MyContacts: React.FC = () => {
         const q = query(contactsRef, where("userId", "==", user.id));
         const querySnapshot = await getDocs(q);
         const contactsData: Connection[] = [];
-        
+
         // Fetch full user data for each contact
         for (const docSnapshot of querySnapshot.docs) {
           const connectionData = docSnapshot.data();
           const userRef = doc(db, "users", connectionData.connectedUserId);
           const userDoc = await getDoc(userRef);
-          
+
           if (userDoc.exists()) {
             const userData = userDoc.data();
             contactsData.push({
@@ -49,14 +51,14 @@ const MyContacts: React.FC = () => {
               connectedUserRating: userData.rating || 0,
             } as Connection);
           } else {
-            contactsData.push({ 
-              id: docSnapshot.id, 
+            contactsData.push({
+              id: docSnapshot.id,
               ...connectionData,
               connectedUserRating: 0,
             } as Connection);
           }
         }
-        
+
         setContacts(contactsData);
       } catch (error) {
         console.error("Error fetching contacts:", error);
@@ -72,13 +74,13 @@ const MyContacts: React.FC = () => {
     try {
       const userRef = doc(db, "users", contact.connectedUserId);
       const userDoc = await getDoc(userRef);
-      
+
       if (userDoc.exists()) {
         const userData = userDoc.data();
-        setSelectedContact({
-          uid: contact.connectedUserId,
-          ...userData,
-        } as UserProfile);
+        const slug = userData.slug || `${slugify(userData.displayName || contact.connectedUserName)}-${contact.connectedUserId.substring(0, 6)}`;
+        navigate(`/profile/${slug}`);
+      } else {
+        console.error("User not found");
       }
     } catch (error) {
       console.error("Error fetching user details:", error);
@@ -97,7 +99,7 @@ const MyContacts: React.FC = () => {
     <div>
       <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
         <FiUsers />
-        Contactele Mele ({contacts.length})
+        Contactele Mele
       </h3>
 
       {contacts.length === 0 ? (
@@ -142,14 +144,14 @@ const MyContacts: React.FC = () => {
                   <div className="font-bold text-lg text-gray-900 dark:text-white mb-1">
                     {contact.connectedUserName}
                   </div>
-                  
+
                   {/* Account Type Badge */}
                   <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-medium mb-2">
                     {contact.connectedUserAccountType === "producer"
                       ? "Producător"
                       : "Artist"}
                   </div>
-                  
+
                   {/* Rating */}
                   <div className="flex items-center justify-center gap-1 text-yellow-500 mb-3">
                     <FiStar className="fill-current" />
@@ -157,7 +159,7 @@ const MyContacts: React.FC = () => {
                       {(contact.connectedUserRating || 0).toFixed(1)}
                     </span>
                   </div>
-                  
+
                   {/* Send Message Button */}
                   {contact.connectedUserEmail && (
                     <a
@@ -176,13 +178,6 @@ const MyContacts: React.FC = () => {
         </div>
       )}
 
-      {/* User Profile Modal */}
-      {selectedContact && (
-        <UserProfileDetails
-          user={selectedContact}
-          onClose={() => setSelectedContact(null)}
-        />
-      )}
     </div>
   );
 };

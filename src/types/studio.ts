@@ -1,3 +1,5 @@
+import type { AccountType } from "./user";
+
 export interface Studio {
   id: string;
   ownerId: string;
@@ -16,6 +18,6 @@ export interface StudioMember {
   displayName: string;
   email: string;
   photoURL: string | null;
-  accountType: "producer" | "artist";
+  accountType: AccountType;
   joinedAt: string;
 }

@@ -8,13 +8,14 @@ import { updateProfile } from "firebase/auth";
 import { FiArrowLeft, FiMail, FiUser, FiMapPin, FiPhone, FiMusic, FiSave, FiCamera } from "react-icons/fi";
 import { FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
 import type { UserProfile } from "../types/user";
+import { slugify } from "../utils/slugify";
 
 const ProfileEdit: React.FC = () => {
   const { user, loading } = useAuth();
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  
+
   // Form state
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -30,16 +31,18 @@ const ProfileEdit: React.FC = () => {
   useEffect(() => {
     const loadProfile = async () => {
       if (!user) return;
-      
+
       try {
         const userRef = doc(db, "users", user.id);
         const snap = await getDoc(userRef);
-        
+
         if (snap.exists()) {
           const data = snap.data() as UserProfile;
+
+          // Parse displayName from Firestore
           const fullName = data.displayName || "";
-          // Split only on first space to allow multiple names
           const firstSpaceIndex = fullName.indexOf(' ');
+
           if (firstSpaceIndex > -1) {
             setFirstName(fullName.substring(0, firstSpaceIndex));
             setLastName(fullName.substring(firstSpaceIndex + 1));
@@ -47,6 +50,7 @@ const ProfileEdit: React.FC = () => {
             setFirstName(fullName);
             setLastName("");
           }
+
           setDescription(data.description || "");
           setGenre(data.genre || "");
           setLocation(data.location || "");
@@ -82,30 +86,30 @@ const ProfileEdit: React.FC = () => {
 
     setUploading(true);
     setMessage(null);
-    
+
     try {
       const storageRef = ref(storage, `avatars/${user.id}/${Date.now()}_${file.name}`);
       const snapshot = await uploadBytes(storageRef, file);
       const url = await getDownloadURL(snapshot.ref);
-      
+
       // Update state immediately
       setPhotoURL(url);
-      
+
       // Update Firestore
       const userRef = doc(db, "users", user.id);
       await setDoc(userRef, { photoURL: url }, { merge: true });
-      
+
       // Update Firebase Auth profile
       if (auth.currentUser) {
         await updateProfile(auth.currentUser, { photoURL: url });
       }
-      
+
       setMessage({ type: "success", text: "Imaginea a fost încărcată cu succes!" });
     } catch (error: any) {
       console.error("Error uploading image:", error);
-      setMessage({ 
-        type: "error", 
-        text: `Eroare la încărcarea imaginii: ${error.message || 'Încearcă din nou'}` 
+      setMessage({
+        type: "error",
+        text: `Eroare la încărcarea imaginii: ${error.message || 'Încearcă din nou'}`
       });
     } finally {
       setUploading(false);
@@ -122,12 +126,17 @@ const ProfileEdit: React.FC = () => {
     try {
       // Trim and preserve spaces in names
       const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();
-      
+
       if (!displayName) {
         setMessage({ type: "error", text: "Te rog completează numele!" });
+        setSaving(false);
         return;
       }
-      
+
+      // Generate slug from displayName + uid
+      const baseSlug = slugify(displayName);
+      const newSlug = `${baseSlug}-${user.id.substring(0, 6)}`;
+
       const userRef = doc(db, "users", user.id);
       const snap = await getDoc(userRef);
       const existingData = snap.exists() ? snap.data() : {};
@@ -137,6 +146,7 @@ const ProfileEdit: React.FC = () => {
         uid: user.id,
         email: user.email,
         displayName,
+        slug: newSlug,
         photoURL,
         description: description.trim(),
         genre: genre.trim(),
@@ -152,23 +162,23 @@ const ProfileEdit: React.FC = () => {
 
       // Update Firebase Auth displayName and photo
       if (auth.currentUser) {
-        await updateProfile(auth.currentUser, { 
+        await updateProfile(auth.currentUser, {
           displayName,
           photoURL: photoURL || undefined
         });
       }
 
       setMessage({ type: "success", text: "Profilul a fost salvat cu succes!" });
-      
+
       // Reload page after 1.5 seconds to refresh user data
       setTimeout(() => {
         window.location.reload();
       }, 1500);
     } catch (error: any) {
       console.error("Error saving profile:", error);
-      setMessage({ 
-        type: "error", 
-        text: `Eroare la salvarea profilului: ${error.message || 'Încearcă din nou'}` 
+      setMessage({
+        type: "error",
+        text: `Eroare la salvarea profilului: ${error.message || 'Încearcă din nou'}`
       });
     } finally {
       setSaving(false);
@@ -208,7 +218,7 @@ const ProfileEdit: React.FC = () => {
                 Editare Profil
               </h2>
               <Link
-                to="/dashboard"
+                to="/profile"
                 className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
               >
                 <FiArrowLeft />
@@ -219,11 +229,10 @@ const ProfileEdit: React.FC = () => {
 
           {/* Message Alert */}
           {message && (
-            <div className={`mx-6 mt-6 p-4 rounded-lg ${
-              message.type === "success" 
-                ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800" 
-                : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800"
-            }`}>
+            <div className={`mx-6 mt-6 p-4 rounded-lg ${message.type === "success"
+              ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800"
+              : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800"
+              }`}>
               {message.text}
             </div>
           )}
@@ -243,7 +252,7 @@ const ProfileEdit: React.FC = () => {
                     {getInitials(`${firstName} ${lastName}`.trim() || user.name)}
                   </div>
                 )}
-                <label 
+                <label
                   htmlFor="avatar-upload"
                   className="absolute bottom-0 right-0 bg-indigo-600 hover:bg-indigo-700 text-white p-3 rounded-full cursor-pointer transition-colors shadow-lg"
                 >
@@ -271,7 +280,7 @@ const ProfileEdit: React.FC = () => {
                 <FiUser />
                 Informații Personale
               </h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -347,7 +356,7 @@ const ProfileEdit: React.FC = () => {
                 <FiMusic />
                 Informații Profesionale
               </h3>
-              
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Gen muzical
@@ -380,7 +389,7 @@ const ProfileEdit: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Link-uri Social Media
               </h3>
-              
+
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -459,14 +468,14 @@ const ProfileEdit: React.FC = () => {
                 <span>{saving ? "Se salvează..." : "Salvează modificările"}</span>
               </button>
               <Link
-                to="/dashboard"
+                to="/profile"
                 className="px-6 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Anulează
               </Link>
             </div>
           </form>
-      </div>
+        </div>
       </div>
     </div>
   );

@@ -7,6 +7,9 @@ import {
   doc,
   deleteDoc,
   serverTimestamp,
+  getDoc,
+  updateDoc,
+  increment,
 } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -38,7 +41,29 @@ export async function createTrackFirestore(payload: CreateTrackPayload) {
     audioURL: payload.audioURL ?? payload.fileUrl ?? "",
     createdAt: serverTimestamp(),
   };
+
+  // Adaugă track-ul în colecția "tracks"
   const ref = await addDoc(collection(db, "tracks"), docPayload);
+
+  // Actualizează statisticile utilizatorului
+  try {
+    const userRef = doc(db, "users", payload.ownerId);
+    const userDoc = await getDoc(userRef);
+
+    if (userDoc.exists()) {
+      await updateDoc(userRef, {
+        "statistics.tracksUploaded": increment(1),
+        updatedAt: serverTimestamp(),
+      });
+      console.log("✅ Statistics updated: tracksUploaded +1");
+    } else {
+      console.warn("⚠️ User document not found, statistics not updated");
+    }
+  } catch (error) {
+    console.error("Error updating user statistics:", error);
+    // Nu aruncăm eroarea pentru a nu bloca upload-ul track-ului
+  }
+
   return { id: ref.id, ...docPayload } as const;
 }
 

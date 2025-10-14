@@ -7,6 +7,7 @@ import ProfileEdit from "./pages/ProfileEdit";
 import Studio from "./pages/Studio";
 import Navbar from "./components/Layout/Navbar";
 import Community from "./components/community";
+import UserProfile from "./pages/UserProfile";
 
 const App: React.FC = () => {
   const location = useLocation();
@@ -20,6 +21,7 @@ const App: React.FC = () => {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/profile" element={<Profil />} />
         <Route path="/profile" element={<Profil />} />
+        <Route path="/profile/:slug" element={<UserProfile />} />
         <Route path="/profile-edit" element={<ProfileEdit />} />
         <Route path="/community" element={<Community />} />
         <Route path="/studio" element={<Studio />} />

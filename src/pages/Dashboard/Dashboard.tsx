@@ -19,7 +19,7 @@ const Profile: React.FC = () => {
   }
 
   if (!user) {
-    return <Navigate to="/auth" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return (
@@ -30,9 +30,9 @@ const Profile: React.FC = () => {
             Bine ai venit, {user.name.split(' ')[0]}
           </h1>
         </div>
-        
+
         <ProfileCard />
-        
+
         <Tabs />
       </div>
     </div>

@@ -1,8 +1,9 @@
-export type AccountType = "producer" | "artist";
+export type AccountType = "producer" | "artist" | "studio";
 
 export interface UserProfile {
   genre: any;
   uid: string;
+  slug: string;
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
