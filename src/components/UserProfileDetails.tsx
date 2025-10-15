@@ -1,9 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { UserProfile } from '../types/user';
 import { FaFacebook, FaInstagram, FaYoutube, FaMapMarkerAlt, FaMicrophone, FaEnvelope, FaStar } from 'react-icons/fa';
 import { FiX, FiUser } from 'react-icons/fi';
-import { useModal } from '../hooks/useModal';
-import { Avatar, SocialLinks } from './shared';
 
 interface UserProfileDetailsProps { 
    user: UserProfile;
@@ -11,7 +9,40 @@ interface UserProfileDetailsProps {
 }
 
 function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
-    const modalRef = useModal(onClose);
+    const modalRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+                onClose();
+            }
+        };
+
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                onClose();
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleEscape);
+        document.body.style.overflow = 'hidden';
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleEscape);
+            document.body.style.overflow = 'unset';
+        };
+    }, [onClose]);
+
+    const getInitials = (name: string) => {
+        return name
+            ?.split(" ")
+            .map((n) => n[0])
+            .slice(0, 2)
+            .join("")
+            .toUpperCase() || "U";
+    };
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
@@ -40,12 +71,17 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                 <div className="p-6 space-y-6">
                     {/* Avatar and Name */}
                     <div className="flex items-center gap-4">
-                        <Avatar 
-                            src={user.photoURL} 
-                            name={user.displayName || "User"} 
-                            size="lg"
-                            className="border-4 border-gray-200 dark:border-gray-700"
-                        />
+                        {user.photoURL ? (
+                            <img
+                                src={user.photoURL}
+                                alt={user.displayName || "User"}
+                                className="w-20 h-20 rounded-full object-cover border-4 border-gray-200 dark:border-gray-700"
+                            />
+                        ) : (
+                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-2xl font-semibold">
+                                {getInitials(user.displayName || "")}
+                            </div>
+                        )}
                         <div className="flex-1">
                             <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                                 {user.displayName || "Utilizator"}

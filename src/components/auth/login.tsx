@@ -1,6 +1,5 @@
 import React, { useState } from "react";
 import { useAuth } from "../../context/authContext";
-import { FormInput } from "../shared";
 
 type Props = { onSwitchToRegister: () => void };
 
@@ -33,24 +32,36 @@ const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
         </div>
       )}
       <form onSubmit={handleSubmit} className="space-y-4">
-        <FormInput
-          id="email"
-          name="email"
-          type="email"
-          label="Email"
-          required
-          autoComplete="email"
-          placeholder="exemplu@email.com"
-        />
-        <FormInput
-          id="password"
-          name="password"
-          type="password"
-          label="Parolă"
-          required
-          autoComplete="current-password"
-          placeholder="••••••••"
-        />
+        <div>
+          <label htmlFor="email" className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
+            Email
+          </label>
+          <input 
+            id="email"
+            name="email" 
+            type="email" 
+            required 
+            autoComplete="email"
+            className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors" 
+            placeholder="exemplu@email.com"
+            aria-required="true"
+          />
+        </div>
+        <div>
+          <label htmlFor="password" className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
+            Parolă
+          </label>
+          <input 
+            id="password"
+            name="password" 
+            type="password" 
+            required 
+            autoComplete="current-password"
+            className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors" 
+            placeholder="••••••••"
+            aria-required="true"
+          />
+        </div>
         <button 
           type="submit" 
           className="w-full bg-primary-500 hover:bg-primary-600 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-primary-500/30 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"

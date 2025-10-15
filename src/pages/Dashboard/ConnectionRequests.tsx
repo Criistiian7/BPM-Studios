@@ -12,7 +12,6 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { FiUserPlus, FiCheck, FiX } from "react-icons/fi";
-import { Avatar } from "../../components/shared";
 
 interface ConnectionRequest {
   id: string;
@@ -201,11 +200,22 @@ const ConnectionRequests: React.FC = () => {
             >
               <div className="flex items-center gap-4">
                 {/* Avatar */}
-                <Avatar 
-                  src={request.senderAvatar} 
-                  name={request.senderName} 
-                  size="md"
-                />
+                {request.senderAvatar ? (
+                  <img
+                    src={request.senderAvatar}
+                    alt={request.senderName}
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold">
+                    {request.senderName
+                      .split(" ")
+                      .map((n) => n[0])
+                      .slice(0, 2)
+                      .join("")
+                      .toUpperCase()}
+                  </div>
+                )}
 
                 {/* Info */}
                 <div className="flex-1">

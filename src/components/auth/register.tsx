@@ -4,10 +4,6 @@ import type { AccountType } from "../../types/user";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import { auth } from "../../firebase";
-import { FormInput } from "../shared";
-import { useFormValidation } from "../../hooks/useFormValidation";
-import { registerValidationRules } from "../../utils/validationRules";
-import { ACCOUNT_TYPES } from "../../constants";
 
 type Props = { onSwitchToLogin: () => void };
 
@@ -16,19 +12,46 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { values, errors, setValue, validate, getFieldError } = useFormValidation({
+  const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
     email: "",
     password: "",
     confirmPassword: "",
-    accountType: ACCOUNT_TYPES.ARTIST as AccountType,
+    accountType: "artist" as AccountType,
     location: "",
     phoneNumber: "",
     facebook: "",
     instagram: "",
     youtube: "",
-  }, registerValidationRules);
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    setFormData({
+      ...formData,
+      [e.target.name]: e.target.value,
+    });
+  };
+
+  const validateForm = (): string | null => {
+    if (!formData.firstName.trim()) return "Te rugăm sa introduci numele.";
+    if (!formData.lastName.trim()) return "Te rugăm sa introduci numele de familie.";
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) return "Adresa de email nu este validă.";
+
+    if (formData.password.length < 6) return "Parola trebuie să conțină minim 6 caractere.";
+
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(formData.password))
+      return "Parola trebuie să conțină cel puțin un caracter special (!, @, #, $, etc.)";
+
+    if (formData.password !== formData.confirmPassword) return "Parolele nu se potrivesc.";
+
+    if (formData.phoneNumber && !/^[0-9+\-\s()]+$/.test(formData.phoneNumber))
+      return "Numărul de telefon nu este valid.";
+
+    return null;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,16 +59,18 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
 
     setError(null);
 
-    if (!validate()) {
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
     setIsSubmitting(true);
 
     try {
-      const fullName = `${values.firstName.trim()} ${values.lastName.trim()}`;
+      const fullName = `${formData.firstName.trim()} ${formData.lastName.trim()}`;
 
-      await registerUser(values.email, values.password, fullName, values.accountType);
+      await registerUser(formData.email, formData.password, fullName, formData.accountType);
 
       // 🔹 Corectare Promise + onAuthStateChanged
       const user = await new Promise<any>((resolve, reject) => {
@@ -66,19 +91,19 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
           userRef,
           {
             uid: user.uid,
-            email: values.email,
+            email: formData.email,
             displayName: fullName,
             photoURL: null,
-            accountType: values.accountType,
+            accountType: formData.accountType,
             rating: 0,
             description: "",
             genre: "",
-            location: values.location.trim(),
-            phoneNumber: values.phoneNumber.trim() || null,
+            location: formData.location.trim(),
+            phoneNumber: formData.phoneNumber.trim() || null,
             socialLinks: {
-              facebook: values.facebook.trim() || null,
-              instagram: values.instagram.trim() || null,
-              youtube: values.youtube.trim() || null,
+              facebook: formData.facebook.trim() || null,
+              instagram: formData.instagram.trim() || null,
+              youtube: formData.youtube.trim() || null,
             },
             statistics: { tracksUploaded: 0, projectsCompleted: 0 },
             memberSince: new Date().toISOString(),
@@ -120,26 +145,37 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
       <form onSubmit={handleSubmit} className="space-y-4">
         {/* Nume și Prenume */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormInput
-            id="firstName"
-            label="Prenume"
-            type="text"
-            required
-            value={values.firstName}
-            onChange={(e) => setValue('firstName', e.target.value)}
-            error={getFieldError('firstName')}
-            placeholder="Ion"
-          />
-          <FormInput
-            id="lastName"
-            label="Nume"
-            type="text"
-            required
-            value={values.lastName}
-            onChange={(e) => setValue('lastName', e.target.value)}
-            error={getFieldError('lastName')}
-            placeholder="Popescu"
-          />
+          <div>
+            <label htmlFor="firstName" className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
+              Prenume <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="firstName"
+              name="firstName"
+              type="text"
+              required
+              value={formData.firstName}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
+              placeholder="Ion"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="lastName" className="block text-sm text-gray-600 dark:text-gray-300 mb-1">
+              Nume <span className="text-red-500">*</span>
+            </label>
+            <input
+              id="lastName"
+              name="lastName"
+              type="text"
+              required
+              value={formData.lastName}
+              onChange={handleChange}
+              className="w-full px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
+              placeholder="Popescu"
+            />
+          </div>
         </div>
 
         {/* Email */}
