@@ -9,6 +9,7 @@ import { FiArrowLeft, FiMail, FiUser, FiMapPin, FiPhone, FiMusic, FiSave, FiCame
 import { FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
 import type { UserProfile } from "../types/user";
 import { slugify } from "../utils/slugify";
+import { Loading } from "../components/shared";
 
 const ProfileEdit: React.FC = () => {
   const { user, loading } = useAuth();
@@ -186,14 +187,7 @@ const ProfileEdit: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
-    );
+    return <Loading fullScreen text="Loading..." />;
   }
 
   if (!user) return <Navigate to="/auth" replace />;

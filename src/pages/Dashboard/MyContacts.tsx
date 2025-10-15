@@ -5,6 +5,7 @@ import { collection, query, where, getDocs, doc, getDoc } from "firebase/firesto
 import { FiUsers, FiMail, FiStar } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { slugify } from "../../utils/slugify";
+import { Avatar } from "../../components/shared";
 
 interface Connection {
   id: string;
@@ -122,22 +123,12 @@ const MyContacts: React.FC = () => {
             >
               <div className="flex flex-col items-center text-center gap-3">
                 {/* Avatar */}
-                {contact.connectedUserAvatar ? (
-                  <img
-                    src={contact.connectedUserAvatar}
-                    alt={contact.connectedUserName}
-                    className="w-20 h-20 rounded-full object-cover border-4 border-gray-100 dark:border-gray-700"
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-semibold border-4 border-gray-100 dark:border-gray-700">
-                    {contact.connectedUserName
-                      .split(" ")
-                      .map((n) => n[0])
-                      .slice(0, 2)
-                      .join("")
-                      .toUpperCase()}
-                  </div>
-                )}
+                <Avatar 
+                  src={contact.connectedUserAvatar} 
+                  name={contact.connectedUserName} 
+                  size="lg" 
+                  className="border-4 border-gray-100 dark:border-gray-700"
+                />
 
                 {/* Name */}
                 <div className="flex-1 w-full">

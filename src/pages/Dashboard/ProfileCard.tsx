@@ -4,71 +4,38 @@ import { FiStar, FiMail, FiMapPin, FiPhone } from "react-icons/fi";
 import { FaFacebook, FaInstagram, FaYoutube, FaMicrophone } from "react-icons/fa";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
+import { Avatar, SocialLinks, AccountTypeBadge, RatingBadge } from "../../components/shared";
+import { useTracks } from "../../hooks/useTracks";
+import { formatDate } from "../../utils";
 
 const ProfileCard: React.FC = () => {
   const { user } = useAuth();
-  const [trackCount, setTrackCount] = React.useState<number>(0);
-  const [loadingTracks, setLoadingTracks] = React.useState(true);
-
-  React.useEffect(() => {
-    if (!user) return;
-
-    const fetchTrackCount = async () => {
-      try {
-        const tracksRef = collection(db, "tracks");
-        const q = query(tracksRef, where("ownerId", "==", user.id));
-        const snapshot = await getDocs(q);
-        setTrackCount(snapshot.size);
-      } catch (error) {
-        console.error("Error counting tracks:", error);
-        setTrackCount(0);
-      } finally {
-        setLoadingTracks(false);
-      }
-    };
-
-    fetchTrackCount();
-  }, [user]);
+  const { trackCount, loading: loadingTracks } = useTracks(user?.id);
 
   if (!user) return null;
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
-  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-colors">
       {/* Header Section with Avatar and Basic Info */}
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6">
         <div className="flex items-center gap-6">
-          {user.avatar ? (
-            <img
-              src={user.avatar}
-              alt={user.name}
-              className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
-            />
-          ) : (
-            <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center text-2xl font-semibold text-indigo-600 shadow-lg">
-              {getInitials(user.name)}
-            </div>
-          )}
+          <Avatar 
+            src={user.avatar} 
+            name={user.name} 
+            size="xl" 
+            className="border-white shadow-lg"
+          />
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-white mb-1">
               {user.name}
             </h2>
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex items-center rounded-full bg-white/20 backdrop-blur-sm text-white px-3 py-1 text-sm font-medium">
-                {user.accountType === "producer" ? "Producător" : "Artist"}
-              </span>
-              <span className="inline-flex items-center gap-1 text-white bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
-                <FiStar className="fill-current text-yellow-300" />
-                {user.rating.toFixed(1)}
-              </span>
+              <AccountTypeBadge 
+                accountType={user.accountType} 
+                className="bg-white/20 backdrop-blur-sm text-white"
+              />
+              <RatingBadge rating={user.rating} />
             </div>
           </div>
         </div>
@@ -134,49 +101,12 @@ const ProfileCard: React.FC = () => {
         </div>
 
         {/* Social Media Links */}
-        {(user.socialLinks?.facebook || user.socialLinks?.instagram || user.socialLinks?.youtube) && (
+        {user.socialLinks && (
           <div>
             <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">
               Social Media
             </h3>
-            <div className="flex flex-wrap gap-3">
-              {user.socialLinks.facebook && (
-                <a
-                  href={user.socialLinks.facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] hover:bg-[#166FE5] text-white rounded-lg transition-colors text-sm font-semibold shadow-md"
-                  aria-label="Facebook"
-                >
-                  <FaFacebook className="text-xl" />
-                  <span className="text-white">Facebook</span>
-                </a>
-              )}
-              {user.socialLinks.instagram && (
-                <a
-                  href={user.socialLinks.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#FCAF45] hover:from-[#7232A8] hover:via-[#E91B1B] hover:to-[#F5A742] text-white rounded-lg transition-all text-sm font-semibold shadow-md"
-                  aria-label="Instagram"
-                >
-                  <FaInstagram className="text-xl" />
-                  <span className="text-white">Instagram</span>
-                </a>
-              )}
-              {user.socialLinks.youtube && (
-                <a
-                  href={user.socialLinks.youtube}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-[#FF0000] hover:bg-[#E60000] text-white rounded-lg transition-colors text-sm font-semibold shadow-md"
-                  aria-label="YouTube"
-                >
-                  <FaYoutube className="text-xl" />
-                  <span className="text-white">YouTube</span>
-                </a>
-              )}
-            </div>
+            <SocialLinks socialLinks={user.socialLinks} size="md" />
           </div>
         )}
 
@@ -214,7 +144,7 @@ const ProfileCard: React.FC = () => {
         {/* Member Since */}
         {user.memberSince && (
           <div className="text-center text-sm text-gray-500 dark:text-gray-400 pt-2">
-            Membru din {new Date(user.memberSince).toLocaleDateString('ro-RO', { month: 'long', year: 'numeric' })}
+            Membru din {formatDate(user.memberSince)}
           </div>
         )}
       </div>

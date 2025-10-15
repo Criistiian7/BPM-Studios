@@ -1,28 +1,17 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useAuth } from "../../context/authContext";
-import { fetchTracksByOwner, createTrackFirestore } from "../../firebase/api";
+import { createTrackFirestore } from "../../firebase/api";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { db, storage } from "../../firebase";
-import { deleteDoc, doc } from "firebase/firestore";
+import { storage } from "../../firebase";
 import AudioPlayer from "../../components/AudioPlayer";
 import { FiEdit2, FiTrash2 } from "react-icons/fi";
+import { useTracks } from "../../hooks/useTracks";
+import { Loading } from "../../components/shared";
 
 const MyTracks: React.FC = () => {
   const { user, refreshUser } = useAuth();
-  const [tracks, setTracks] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { tracks, loading, deleteTrack, addTrack } = useTracks(user?.id);
   const [showModal, setShowModal] = useState(false);
-
-  useEffect(() => {
-    if (!user) return;
-    setLoading(true);
-    fetchTracksByOwner(user.id)
-      .then((data) => {
-        setTracks(data);
-        setLoading(false);
-      })
-      .catch(() => setLoading(false));
-  }, [user]);
 
   const UploadModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const [title, setTitle] = useState("");
@@ -58,7 +47,7 @@ const MyTracks: React.FC = () => {
           ownerId: user.id,
           audioURL: url,
         });
-        setTracks((prev) => [created, ...prev]);
+        addTrack(created);
         await refreshUser();
         onClose();
       } catch (err: any) {
@@ -126,7 +115,7 @@ const MyTracks: React.FC = () => {
       </div>
 
       {loading ? (
-        <div>Loading...</div>
+        <Loading text="Se încarcă track-urile..." />
       ) : (
         <div className="space-y-4">
           {tracks.map((t) => (
@@ -160,11 +149,9 @@ const MyTracks: React.FC = () => {
                     onClick={async () => {
                       if (window.confirm("Ești sigur că vrei să ștergi acest track?")) {
                         try {
-                          await deleteDoc(doc(db, "tracks", t.id));
+                          await deleteTrack(t.id);
                           await refreshUser();
-                          setTracks(tracks.filter(track => track.id !== t.id));
                         } catch (error) {
-                          console.error("Error deleting track:", error);
                           alert("Eroare la ștergerea track-ului");
                         }
                       }
