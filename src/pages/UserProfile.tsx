@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import type { UserProfile as UserProfileType } from "../types/user";
-import { FiArrowLeft, FiMapPin, FiMail, FiPhone, FiStar, FiEdit2 } from "react-icons/fi";
+import { FiArrowLeft, FiMapPin, FiMail, FiPhone, FiStar } from "react-icons/fi";
 import { FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
 import { slugify } from "../utils/slugify";
 import AudioPlayer from "../components/AudioPlayer";
@@ -19,6 +19,8 @@ const UserProfile: React.FC = () => {
   const [trackCount, setTrackCount] = useState<number>(0);
   const [userTracks, setUserTracks] = useState<any[]>([]);
   const [loadingTracks, setLoadingTracks] = useState(false);
+  const [autoPlayTrackId, setAutoPlayTrackId] = useState<string | null>(null);
+  const trackRefs = React.useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   useEffect(() => {
     if (!profile?.uid) return;
@@ -41,6 +43,16 @@ const UserProfile: React.FC = () => {
 
     fetchUserTracks();
   }, [profile?.uid]);
+
+  // Reset autoPlayTrackId after it's been used
+  useEffect(() => {
+    if (autoPlayTrackId) {
+      const timer = setTimeout(() => {
+        setAutoPlayTrackId(null);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [autoPlayTrackId]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -176,84 +188,87 @@ const UserProfile: React.FC = () => {
               </div>
 
               {profile.description && (
-              <p className="text-gray-600 dark:text-gray-400 mb-4">
-                {profile.description}
-              </p>
+                <p className="text-gray-600 dark:text-gray-400 mb-4">
+                  {profile.description}
+                </p>
               )}
 
-          {/* Contact Info */}
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-6 space-y-3">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Informații de contact</h2>
+              {/* Contact Info */}
+              <div className="border-t border-gray-200 dark:border-gray-700 pt-6 space-y-3">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Informații de contact</h2>
 
-          {profile.email && (
-            <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-              <FiMail className="text-primary-500 flex-shrink-0" />
-              <a href={`mailto:${profile.email}`} className="hover:text-primary-600 transition-colors">
-                      {profile.email}
-              </a>
-            </div>
-          )}
-
-          {profile.phoneNumber && (
+                {profile.email && (
                   <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-              <FiPhone className="text-primary-500 flex-shrink-0" />
-              <a href={`tel:${profile.phoneNumber}`} className="hover:text-primary-500 transition-colors">
-                {profile.phoneNumber}
-              </a>
-            </div>
-          )}
+                    <FiMail className="text-primary-500 flex-shrink-0" />
+                    <a href={`mailto:${profile.email}`} className="hover:text-primary-600 transition-colors">
+                      {profile.email}
+                    </a>
+                  </div>
+                )}
 
-          {profile.location && (
-            <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-              <FiMapPin className="text-primary-500 flex-shrink-0" />
-              <span>{profile.location}</span>
-            </div>
-          )}
-        </div>
+                {profile.phoneNumber && (
+                  <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                    <FiPhone className="text-primary-500 flex-shrink-0" />
+                    <a href={`tel:${profile.phoneNumber}`} className="hover:text-primary-500 transition-colors">
+                      {profile.phoneNumber}
+                    </a>
+                  </div>
+                )}
 
-        {/* Social Media */}
-        {(profile.socialLinks?.facebook || profile.socialLinks?.instagram || profile.socialLinks?.youtube) && (
-          <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
-            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Social Media</h2>
+                {profile.location && (
+                  <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+                    <FiMapPin className="text-primary-500 flex-shrink-0" />
+                    <span>{profile.location}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Social Media */}
+              {(profile.socialLinks?.facebook || profile.socialLinks?.instagram || profile.socialLinks?.youtube) && (
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Social Media</h2>
                   <div className="flex gap-3 flex-wrap">
-              {profile.socialLinks.facebook && (
-                <a
-                  href={profile.socialLinks.facebook}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] text-white rounded-lg hover:bg-[#0d65d9] transition-colors shadow-md"
-                >
-                  <FaFacebook className="text-xl" />
-                  <span className="font-semibold">Facebook</span>
-                </a>
-              )}
-              {profile.socialLinks.instagram && (
-                <a
-                  href={profile.socialLinks.instagram}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white rounded-lg hover:opacity-90 transition-opacity shadow-md"
-                >
-                  <FaInstagram className="text-xl" />
-                  <span className="font-semibold">Instagram</span>
-                </a>
-              )}
-              {profile.socialLinks.youtube && (
-                <a
-                  href={profile.socialLinks.youtube}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-[#FF0000] text-white rounded-lg hover:bg-[#cc0000] transition-colors shadow-md"
-                >
-                  <FaYoutube className="text-xl" />
-                  <span className="font-semibold">YouTube</span>
-                </a>
+                    {profile.socialLinks.facebook && (
+                      <a
+                        href={profile.socialLinks.facebook}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-3 text-slate-500 dark:text-slate-400 hover:text-[#1877F2] hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all duration-200 hover:scale-110"
+                        title="Facebook"
+                        aria-label="Facebook"
+                      >
+                        <FaFacebook className="text-2xl" />
+                      </a>
+                    )}
+                    {profile.socialLinks.instagram && (
+                      <a
+                        href={profile.socialLinks.instagram}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-3 text-slate-500 dark:text-slate-400 hover:text-[#E4405F] hover:bg-pink-50 dark:hover:bg-pink-500/10 rounded-xl transition-all duration-200 hover:scale-110"
+                        title="Instagram"
+                        aria-label="Instagram"
+                      >
+                        <FaInstagram className="text-2xl" />
+                      </a>
+                    )}
+                    {profile.socialLinks.youtube && (
+                      <a
+                        href={profile.socialLinks.youtube}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-3 text-slate-500 dark:text-slate-400 hover:text-[#FF0000] hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all duration-200 hover:scale-110"
+                        title="YouTube"
+                        aria-label="YouTube"
+                      >
+                        <FaYoutube className="text-2xl" />
+                      </a>
+                    )}
+                  </div>
+                </div>
               )}
             </div>
           </div>
-        )}
-      </div>
-    </div>
 
           {/* Tracks Section - SEPARAT SUB containerul principal */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mt-6">
@@ -273,93 +288,65 @@ const UserProfile: React.FC = () => {
                 <p>Nu sunt track-uri încărcate</p>
               </div>
             ) : (
-              <div className="space-y-6">
-                {userTracks.map((track) => (
+              <div className="space-y-4">
+                {userTracks.map((track, index) => (
                   <div
                     key={track.id}
-                    className="group relative overflow-hidden bg-white dark:bg-gray-800 rounded-3xl shadow-2xl hover:shadow-3xl transition-all duration-500 border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-800"
+                    ref={(el) => {
+                      trackRefs.current[track.id] = el;
+                    }}
+                    className="border border-slate-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-800 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 hover:shadow-xl hover:shadow-slate-300/50 dark:hover:shadow-slate-900/70 transition-all duration-300 overflow-hidden hover:border-blue-300 dark:hover:border-blue-600"
                   >
-                    {/* Gradient overlay pentru efect modern */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-
-                    <div className="relative p-8">
-                      {/* Header cu iconița animată și titlul */}
-                      <div className="flex items-start gap-6 mb-6">
-                        <div className="relative">
-                          <div className="w-20 h-20 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-3xl flex items-center justify-center shadow-2xl group-hover:scale-110 transition-transform duration-300">
-                            <span className="text-white text-3xl drop-shadow-lg">🎵</span>
-                          </div>
-                          {/* Efect de glow */}
-                          <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-3xl blur-lg opacity-0 group-hover:opacity-30 transition-opacity duration-300"></div>
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-3 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors duration-300">
-                            {track.title}
-                          </h3>
-
-                          {/* Tags moderne cu animații */}
-                          <div className="flex flex-wrap items-center gap-3">
-                            {/* Genul muzical */}
-                            {track.genre && (
-                              <span className="px-4 py-2 bg-gradient-to-r from-indigo-100 to-purple-100 dark:from-indigo-900/30 dark:to-purple-900/30 text-indigo-700 dark:text-indigo-300 rounded-full font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-                                🎶 {track.genre}
-                              </span>
-                            )}
-
-                            {/* Statusul cu iconițe */}
-                            {track.status && (
-                              <span className={`px-4 py-2 rounded-full font-semibold text-sm shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 ${track.status === "Release"
-                                ? "bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 text-green-700 dark:text-green-300"
-                                : track.status === "Pre-Release"
-                                  ? "bg-gradient-to-r from-yellow-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 text-yellow-700 dark:text-yellow-300"
-                                  : "bg-gradient-to-r from-gray-100 to-slate-100 dark:from-gray-900/30 dark:to-slate-900/30 text-gray-700 dark:text-gray-300"
-                                }`}>
-                                {track.status === "Release" ? "✨ " : track.status === "Pre-Release" ? "🚀 " : "🛠️ "}
-                                {track.status}
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Uploaded by cu design modern */}
-                          <div className="mt-4 flex items-center gap-2 text-gray-600 dark:text-gray-400">
-                            <span className="text-sm">Uploaded by:</span>
-                            <button
-                              onClick={() => {
-                                const slug = profile.slug || `${slugify(profile.displayName || '')}-${profile.uid.substring(0, 6)}`;
-                                navigate(`/profile/${slug}`);
-                              }}
-                              className="px-3 py-1 bg-gradient-to-r from-indigo-500 to-purple-500 text-white rounded-full text-sm font-medium hover:from-indigo-600 hover:to-purple-600 transition-all duration-300 hover:scale-105 hover:shadow-lg"
-                            >
-                              👤 {profile.displayName}
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Player cu butoane Play/Pause */}
-                      {track.audioURL && (
-                        <div className="space-y-4">
-                          <AudioPlayer audioURL={track.audioURL} />
-
-                          {/* Buton Edit Track doar pentru owner */}
-                          {currentUser && currentUser.id === profile.uid && (
-                            <div className="flex justify-end">
-                              <button
-                                onClick={() => {
-                                  // TODO: Implementează logica de editare
-                                  console.log("Edit track:", track.id);
-                                }}
-                                className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
-                              >
-                                <FiEdit2 className="text-lg" />
-                                <span>Edit Track</span>
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    {track.audioURL && (
+                      <AudioPlayer
+                        audioURL={track.audioURL}
+                        title={track.title}
+                        genre={track.genre}
+                        status={track.status}
+                        uploadedBy={profile?.displayName || profile?.email || "Unknown"}
+                        onUploadedByClick={() => {
+                          if (profile) {
+                            const slug = profile.slug || `${slugify(profile.displayName || '')}-${profile.uid.substring(0, 6)}`;
+                            navigate(`/profile/${slug}`);
+                          }
+                        }}
+                        onEdit={currentUser && currentUser.id === profile?.uid ? () => {
+                          // TODO: Implementează logica de editare
+                          console.log("Edit track:", track.id);
+                        } : undefined}
+                        onDelete={currentUser && currentUser.id === profile?.uid ? () => {
+                          // TODO: Implementează logica de ștergere
+                          console.log("Delete track:", track.id);
+                        } : undefined}
+                        onNext={(wasPlaying) => {
+                          if (index < userTracks.length - 1) {
+                            const nextTrackId = userTracks[index + 1].id;
+                            if (wasPlaying) {
+                              setAutoPlayTrackId(nextTrackId);
+                            }
+                            trackRefs.current[nextTrackId]?.scrollIntoView({
+                              behavior: 'smooth',
+                              block: 'center'
+                            });
+                          }
+                        }}
+                        onPrevious={(wasPlaying) => {
+                          if (index > 0) {
+                            const prevTrackId = userTracks[index - 1].id;
+                            if (wasPlaying) {
+                              setAutoPlayTrackId(prevTrackId);
+                            }
+                            trackRefs.current[prevTrackId]?.scrollIntoView({
+                              behavior: 'smooth',
+                              block: 'center'
+                            });
+                          }
+                        }}
+                        hasNext={index < userTracks.length - 1}
+                        hasPrevious={index > 0}
+                        autoPlay={autoPlayTrackId === track.id}
+                      />
+                    )}
                   </div>
                 ))}
               </div>

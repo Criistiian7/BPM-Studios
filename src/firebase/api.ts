@@ -67,6 +67,27 @@ export async function createTrackFirestore(payload: CreateTrackPayload) {
   return { id: ref.id, ...docPayload } as const;
 }
 
+export type UpdateTrackPayload = {
+  title?: string;
+  description?: string;
+  status?: "Work in Progress" | "Pre-Release" | "Release";
+  genre?: string;
+  bpm?: number;
+};
+
+export async function updateTrackFirestore(
+  trackId: string,
+  payload: UpdateTrackPayload
+) {
+  const trackRef = doc(db, "tracks", trackId);
+  await updateDoc(trackRef, {
+    ...payload,
+    updatedAt: serverTimestamp(),
+  });
+
+  return { id: trackId, ...payload };
+}
+
 export async function fetchContacts() {
   const snap = await getDocs(collection(db, "contacts"));
   return snap.docs.map((d) => ({ id: d.id, ...d.data() }));

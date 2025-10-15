@@ -11,7 +11,7 @@ import {
   addDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { FiUserPlus, FiCheck, FiX, FiUsers, FiHome } from "react-icons/fi";
+import { FiUserPlus, FiCheck, FiX, FiHome } from "react-icons/fi";
 
 interface ConnectionRequest {
   id: string;
