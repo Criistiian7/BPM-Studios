@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/authContext";
 import { FiHome, FiUser, FiUsers, FiMic, FiSun, FiMoon, FiSettings, FiLogOut } from "react-icons/fi";
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -63,6 +64,7 @@ const Navbar: React.FC = () => {
   const handleLogout = async () => {
     setShowDropdown(false);
     await logout();
+    navigate("/home");
   };
 
   const isActive = (path: string) => location.pathname === path;

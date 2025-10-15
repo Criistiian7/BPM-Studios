@@ -166,3 +166,133 @@ audio::-webkit-media-controls-fullscreen-button:hover {
 .track-card:hover::before {
   left: 100%;
 }
+
+/* Custom Modern Scrollbar */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(168, 85, 247, 0.5) rgba(255, 255, 255, 0.1);
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 8px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  margin: 8px 0;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #a855f7 0%, #ec4899 50%, #6366f1 100%);
+  border-radius: 10px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  transition: all 0.3s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #9333ea 0%, #db2777 50%, #4f46e5 100%);
+  border-width: 1px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, #7e22ce 0%, #be185d 50%, #4338ca 100%);
+}
+
+/* Dark mode scrollbar */
+.dark .custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #c084fc 0%, #f472b6 50%, #818cf8 100%);
+}
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #d8b4fe 0%, #f9a8d4 50%, #a5b4fc 100%);
+}
+
+/* Custom Modern Select Dropdown */
+select {
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 20px) calc(1em + 2px),
+    calc(100% - 15px) calc(1em + 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+select:focus {
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 15px) 1em, calc(100% - 20px) 1em;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+/* Stilizare opțiuni dropdown */
+select option {
+  padding: 12px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+select option:hover {
+  background: linear-gradient(135deg, #a855f7 0%, #ec4899 100%);
+  color: white;
+}
+
+/* Animație pentru deschidere dropdown */
+select:focus {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.2);
+}
+
+/* Previne flicker la încărcare pagină */
+html {
+  /* Ascunde scroll-ul până când pagina este complet încărcată */
+  overflow-y: scroll;
+}
+
+body {
+  /* Smooth transitions pentru schimbări de culoare */
+  transition: background-color 0.2s ease-in-out;
+}
+
+/* Optimizare pentru animații */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Reduce layout shift - exclude avatarele rotunde */
+img:not(.rounded-full):not([class*="avatar"]) {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Asigură că avatarele rămân rotunde și păstrează aspect ratio */
+img.rounded-full,
+.rounded-full img {
+  border-radius: 9999px !important;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+/* Fix pentru avatarele care sunt div-uri (pentru initiale) */
+div.rounded-full {
+  border-radius: 9999px !important;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Preload pentru fonturi și imagini critice */
+@supports (content-visibility: auto) {
+  .lazy-content {
+    content-visibility: auto;
+    contain-intrinsic-size: 0 500px;
+  }
+}

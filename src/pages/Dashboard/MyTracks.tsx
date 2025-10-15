@@ -25,13 +25,40 @@ const MyTracks: React.FC = () => {
   }, [user]);
 
   const UploadModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [genre, setGenre] = useState("");
-    const [status, setStatus] = useState<"Work in Progress" | "Pre-Release" | "Release">("Work in Progress");
+    const UPLOAD_STORAGE_KEY = "bpm_upload_track_form_data";
+
+    // Încarcă datele salvate din localStorage
+    const getInitialFormData = () => {
+      try {
+        const savedData = localStorage.getItem(UPLOAD_STORAGE_KEY);
+        if (savedData) {
+          return JSON.parse(savedData);
+        }
+      } catch (err) {
+        console.error("Error loading saved upload form data:", err);
+      }
+      return {
+        title: "",
+        description: "",
+        genre: "",
+        status: "Work in Progress" as "Work in Progress" | "Pre-Release" | "Release",
+      };
+    };
+
+    const initialData = getInitialFormData();
+    const [title, setTitle] = useState(initialData.title);
+    const [description, setDescription] = useState(initialData.description);
+    const [genre, setGenre] = useState(initialData.genre);
+    const [status, setStatus] = useState<"Work in Progress" | "Pre-Release" | "Release">(initialData.status);
     const [audioFile, setAudioFile] = useState<File | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Salvează datele în localStorage la fiecare modificare
+    useEffect(() => {
+      const formData = { title, description, genre, status };
+      localStorage.setItem(UPLOAD_STORAGE_KEY, JSON.stringify(formData));
+    }, [title, description, genre, status]);
 
     const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
       setAudioFile(e.target.files?.[0] ?? null);
@@ -60,6 +87,10 @@ const MyTracks: React.FC = () => {
         });
         setTracks((prev) => [created, ...prev]);
         await refreshUser();
+
+        // Șterge datele salvate din localStorage după upload reușit
+        localStorage.removeItem(UPLOAD_STORAGE_KEY);
+
         onClose();
       } catch (err: any) {
         setError(err.message ?? "Upload failed");

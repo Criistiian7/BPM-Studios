@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useAuth } from "../../context/authContext";
 import { db } from "../../firebase";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
-import { FiUsers, FiMail, FiStar } from "react-icons/fi";
+import { FiUsers, FiPhone, FiMessageCircle } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { slugify } from "../../utils/slugify";
 
@@ -15,6 +15,10 @@ interface Connection {
   connectedUserAccountType: string;
   connectedUserEmail?: string;
   connectedUserRating?: number;
+  connectedUserDescription?: string;
+  connectedUserLocation?: string;
+  connectedUserUsername?: string; // Added
+  connectedUserPhoneNumber?: string; // Added
   createdAt: any;
 }
 
@@ -24,6 +28,7 @@ const MyContacts: React.FC = () => {
   const navigate = useNavigate();
   const [contacts, setContacts] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [avatarError, setAvatarError] = useState<{ [key: string]: boolean }>({});
 
 
   useEffect(() => {
@@ -36,7 +41,6 @@ const MyContacts: React.FC = () => {
         const querySnapshot = await getDocs(q);
         const contactsData: Connection[] = [];
 
-        // Fetch full user data for each contact
         for (const docSnapshot of querySnapshot.docs) {
           const connectionData = docSnapshot.data();
           const userRef = doc(db, "users", connectionData.connectedUserId);
@@ -49,12 +53,20 @@ const MyContacts: React.FC = () => {
               ...connectionData,
               connectedUserEmail: userData.email,
               connectedUserRating: userData.rating || 0,
+              connectedUserDescription: userData.description || "",
+              connectedUserLocation: userData.location || "",
+              connectedUserUsername: userData.username || userData.displayName?.toLowerCase().replace(/\s+/g, '') || "", // Added
+              connectedUserPhoneNumber: userData.phoneNumber || "", // Added
             } as Connection);
           } else {
             contactsData.push({
               id: docSnapshot.id,
               ...connectionData,
               connectedUserRating: 0,
+              connectedUserDescription: "",
+              connectedUserLocation: "",
+              connectedUserUsername: "", // Added
+              connectedUserPhoneNumber: "", // Added
             } as Connection);
           }
         }
@@ -113,71 +125,117 @@ const MyContacts: React.FC = () => {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {contacts.map((contact) => (
             <div
               key={contact.id}
               onClick={() => handleContactClick(contact)}
-              className="bg-white dark:bg-gray-800 p-5 rounded-lg border border-gray-200 dark:border-gray-700 hover:shadow-lg transition-all cursor-pointer"
+              className="bg-white/80 dark:bg-gray-800/70 backdrop-blur-sm rounded-xl p-6 border border-gray-200/50 dark:border-gray-700/50 cursor-pointer hover:bg-gray-50/90 dark:hover:bg-gray-750/80 transition-colors flex flex-col h-full shadow-sm dark:shadow-none"
             >
-              <div className="flex flex-col items-center text-center gap-3">
-                {/* Avatar */}
-                {contact.connectedUserAvatar ? (
-                  <img
-                    src={contact.connectedUserAvatar}
-                    alt={contact.connectedUserName}
-                    className="w-20 h-20 rounded-full object-cover border-4 border-gray-100 dark:border-gray-700"
-                  />
-                ) : (
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-xl font-semibold border-4 border-gray-100 dark:border-gray-700">
-                    {contact.connectedUserName
-                      .split(" ")
-                      .map((n) => n[0])
-                      .slice(0, 2)
-                      .join("")
-                      .toUpperCase()}
-                  </div>
-                )}
-
-                {/* Name */}
-                <div className="flex-1 w-full">
-                  <div className="font-bold text-lg text-gray-900 dark:text-white mb-1">
-                    {contact.connectedUserName}
-                  </div>
-
-                  {/* Account Type Badge */}
-                  <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 text-xs font-medium mb-2">
-                    {contact.connectedUserAccountType === "producer"
-                      ? "Producător"
-                      : "Artist"}
+              {/* Conținut Principal */}
+              <div className="flex-1 flex flex-col">
+                {/* Layout cu Avatar în stânga și detalii în dreapta */}
+                <div className="flex items-start gap-4 mb-4">
+                  {/* Avatar */}
+                  <div className="flex-shrink-0">
+                    {contact.connectedUserAvatar && !avatarError[contact.id] ? (
+                      <img
+                        src={contact.connectedUserAvatar}
+                        alt={contact.connectedUserName}
+                        className="w-16 h-16 rounded-full object-cover border-2 border-white/20 dark:border-gray-400/30"
+                        onError={() => setAvatarError(prev => ({ ...prev, [contact.id]: true }))}
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-full bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center text-white text-xl font-semibold border-2 border-white/20 dark:border-gray-400/30">
+                        {contact.connectedUserName
+                          .split(" ")
+                          .map((n) => n[0])
+                          .slice(0, 2)
+                          .join("")
+                          .toUpperCase()}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Rating */}
-                  <div className="flex items-center justify-center gap-1 text-yellow-500 mb-3">
-                    <FiStar className="fill-current" />
-                    <span className="text-sm font-semibold">
-                      {(contact.connectedUserRating || 0).toFixed(1)}
-                    </span>
-                  </div>
+                  {/* Detalii */}
+                  <div className="flex-1 min-w-0">
+                    {/* Nume */}
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-1 truncate">
+                      {contact.connectedUserName}
+                    </h3>
 
-                  {/* Send Message Button */}
-                  {contact.connectedUserEmail && (
-                    <a
-                      href={`mailto:${contact.connectedUserEmail}`}
-                      onClick={(e) => e.stopPropagation()}
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium rounded-lg transition-colors"
-                    >
-                      <FiMail />
-                      <span>Trimite mesaj</span>
-                    </a>
-                  )}
+                    {/* Username */}
+                    {contact.connectedUserUsername && (
+                      <p className="text-gray-600 dark:text-gray-400 text-sm mb-2 truncate">
+                        @{contact.connectedUserUsername}
+                      </p>
+                    )}
+
+                    {/* Tip cont */}
+                    <div className="mb-2">
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 dark:bg-indigo-500/20 text-indigo-700 dark:text-indigo-300 flex items-center gap-1 w-fit">
+                        {contact.connectedUserAccountType === "producer" ? (
+                          <>
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Producător
+                          </>
+                        ) : (
+                          <>
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clipRule="evenodd" />
+                            </svg>
+                            Artist
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  </div>
                 </div>
+
+                {/* Descriere */}
+                <p className="text-gray-600 dark:text-gray-300 text-sm flex-1 line-clamp-3">
+                  {contact.connectedUserDescription || "Fără descriere"}
+                </p>
+              </div>
+
+              {/* Butoane Sună și Mesaj - Fixate în partea de jos */}
+              <div className="flex gap-3 mt-6">
+                {/* Buton Sună */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (contact.connectedUserPhoneNumber) {
+                      window.open(`tel:${contact.connectedUserPhoneNumber}`, '_self');
+                    }
+                  }}
+                  disabled={!contact.connectedUserPhoneNumber}
+                  className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-indigo-500 hover:text-white text-gray-700 dark:text-white font-medium py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <FiPhone className="text-sm" />
+                  <span className="text-sm">Sună</span>
+                </button>
+
+                {/* Buton Mesaj */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (contact.connectedUserEmail) {
+                      window.open(`mailto:${contact.connectedUserEmail}`, '_self');
+                    }
+                  }}
+                  disabled={!contact.connectedUserEmail}
+                  className="flex-1 bg-gray-200 dark:bg-gray-700 hover:bg-indigo-500 hover:text-white text-gray-700 dark:text-white font-medium py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <FiMessageCircle className="text-sm" />
+                  <span className="text-sm">Mesaj</span>
+                </button>
               </div>
             </div>
           ))}
         </div>
       )}
-
     </div>
   );
 };
