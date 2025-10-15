@@ -21,6 +21,5 @@ const app = initializeApp(firebaseConfig);
 // Servicii Firebase pe care le vei folosi
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const firestore = getFirestore(app);
 export const storage = getStorage(app);
 export default app;

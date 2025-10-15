@@ -1,0 +1,19 @@
+# Dependencies
+node_modules
+
+# Build outputs
+dist
+dist-ssr
+build
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+
+# Other
+coverage
+.vite

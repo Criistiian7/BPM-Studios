@@ -79,6 +79,6 @@ export async function fetchRequestForUser(userId: string) {
 }
 
 export async function acceptRequestFirestore(requestId: string) {
-  await deleteDoc(doc(db, "request", requestId));
-  return { succes: true };
+  await deleteDoc(doc(db, "requests", requestId));
+  return { success: true };
 }

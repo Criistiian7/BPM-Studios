@@ -20,7 +20,6 @@ const App: React.FC = () => {
         <Route path="/" element={<Home />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/profile" element={<Profil />} />
-        <Route path="/profile" element={<Profil />} />
         <Route path="/profile/:slug" element={<UserProfile />} />
         <Route path="/profile-edit" element={<ProfileEdit />} />
         <Route path="/community" element={<Community />} />
