@@ -145,11 +145,11 @@ const ProfileCard: React.FC = () => {
                   href={user.socialLinks.facebook}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] hover:bg-[#166FE5] text-white rounded-lg transition-colors text-sm font-semibold shadow-md"
+                  className="p-3 text-slate-500 dark:text-slate-400 hover:text-[#1877F2] hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all duration-200 hover:scale-110"
+                  title="Facebook"
                   aria-label="Facebook"
                 >
-                  <FaFacebook className="text-xl" />
-                  <span className="text-white">Facebook</span>
+                  <FaFacebook className="text-2xl" />
                 </a>
               )}
               {user.socialLinks.instagram && (
@@ -157,11 +157,11 @@ const ProfileCard: React.FC = () => {
                   href={user.socialLinks.instagram}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-br from-[#833AB4] via-[#FD1D1D] to-[#FCAF45] hover:from-[#7232A8] hover:via-[#E91B1B] hover:to-[#F5A742] text-white rounded-lg transition-all text-sm font-semibold shadow-md"
+                  className="p-3 text-slate-500 dark:text-slate-400 hover:text-[#E4405F] hover:bg-pink-50 dark:hover:bg-pink-500/10 rounded-xl transition-all duration-200 hover:scale-110"
+                  title="Instagram"
                   aria-label="Instagram"
                 >
-                  <FaInstagram className="text-xl" />
-                  <span className="text-white">Instagram</span>
+                  <FaInstagram className="text-2xl" />
                 </a>
               )}
               {user.socialLinks.youtube && (
@@ -169,11 +169,11 @@ const ProfileCard: React.FC = () => {
                   href={user.socialLinks.youtube}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 px-4 py-2 bg-[#FF0000] hover:bg-[#E60000] text-white rounded-lg transition-colors text-sm font-semibold shadow-md"
+                  className="p-3 text-slate-500 dark:text-slate-400 hover:text-[#FF0000] hover:bg-red-50 dark:hover:bg-red-500/10 rounded-xl transition-all duration-200 hover:scale-110"
+                  title="YouTube"
                   aria-label="YouTube"
                 >
-                  <FaYoutube className="text-xl" />
-                  <span className="text-white">YouTube</span>
+                  <FaYoutube className="text-2xl" />
                 </a>
               )}
             </div>
