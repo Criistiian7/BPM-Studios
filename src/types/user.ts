@@ -3,7 +3,7 @@ export type AccountType = "producer" | "artist" | "studio";
 export interface UserProfile {
   genre: any;
   uid: string;
-  slug: string;
+  slug?: string;
   email: string | null;
   displayName: string | null;
   photoURL: string | null;
@@ -22,6 +22,12 @@ export interface UserProfile {
   location: string;
   phoneNumber: string | null;
   memberSince: string;
+  // Studio-specific fields (optional, only for studios)
+  studioId?: string;
+  ownerId?: string;
+  ownerName?: string;
+  ownerEmail?: string;
+  ownerAvatar?: string | null;
 }
 
 export interface AppUser {

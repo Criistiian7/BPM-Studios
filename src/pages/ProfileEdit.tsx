@@ -10,11 +10,14 @@ import { FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
 import type { UserProfile } from "../types/user";
 import { slugify } from "../utils/slugify";
 
+const STORAGE_KEY = "bpm_profile_edit_form_data";
+
 const ProfileEdit: React.FC = () => {
   const { user, loading } = useAuth();
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   // Form state
   const [firstName, setFirstName] = useState("");
@@ -28,6 +31,28 @@ const ProfileEdit: React.FC = () => {
   const [instagram, setInstagram] = useState("");
   const [youtube, setYoutube] = useState("");
 
+  // Încarcă datele salvate din localStorage
+  useEffect(() => {
+    const savedData = localStorage.getItem(STORAGE_KEY);
+    if (savedData && !dataLoaded) {
+      try {
+        const parsed = JSON.parse(savedData);
+        setFirstName(parsed.firstName || "");
+        setLastName(parsed.lastName || "");
+        setDescription(parsed.description || "");
+        setGenre(parsed.genre || "");
+        setLocation(parsed.location || "");
+        setPhoneNumber(parsed.phoneNumber || "");
+        setFacebook(parsed.facebook || "");
+        setInstagram(parsed.instagram || "");
+        setYoutube(parsed.youtube || "");
+        setDataLoaded(true);
+      } catch (error) {
+        console.error("Error loading saved form data:", error);
+      }
+    }
+  }, [dataLoaded]);
+
   useEffect(() => {
     const loadProfile = async () => {
       if (!user) return;
@@ -38,6 +63,10 @@ const ProfileEdit: React.FC = () => {
 
         if (snap.exists()) {
           const data = snap.data() as UserProfile;
+
+          // Doar încarcă datele din Firestore dacă nu există date salvate în localStorage
+          const savedData = localStorage.getItem(STORAGE_KEY);
+          if (savedData) return; // Skip loading from Firestore if localStorage has data
 
           // Parse displayName from Firestore
           const fullName = data.displayName || "";
@@ -67,6 +96,24 @@ const ProfileEdit: React.FC = () => {
 
     loadProfile();
   }, [user]);
+
+  // Salvează datele în localStorage la fiecare modificare
+  useEffect(() => {
+    if (dataLoaded || firstName || lastName || description) {
+      const formData = {
+        firstName,
+        lastName,
+        description,
+        genre,
+        location,
+        phoneNumber,
+        facebook,
+        instagram,
+        youtube,
+      };
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+    }
+  }, [firstName, lastName, description, genre, location, phoneNumber, facebook, instagram, youtube, dataLoaded]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -168,6 +215,9 @@ const ProfileEdit: React.FC = () => {
         });
       }
 
+      // Șterge datele salvate din localStorage după salvare reușită
+      localStorage.removeItem(STORAGE_KEY);
+      
       setMessage({ type: "success", text: "Profilul a fost salvat cu succes!" });
 
       // Reload page after 1.5 seconds to refresh user data
@@ -475,7 +525,7 @@ const ProfileEdit: React.FC = () => {
               </Link>
             </div>
           </form>
-        </div>
+      </div>
       </div>
     </div>
   );

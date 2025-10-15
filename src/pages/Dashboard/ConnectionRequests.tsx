@@ -11,7 +11,7 @@ import {
   addDoc,
   serverTimestamp,
 } from "firebase/firestore";
-import { FiUserPlus, FiCheck, FiX } from "react-icons/fi";
+import { FiUserPlus, FiCheck, FiX, FiUsers, FiHome } from "react-icons/fi";
 
 interface ConnectionRequest {
   id: string;
@@ -24,6 +24,12 @@ interface ConnectionRequest {
   receiverName: string;
   status: "pending" | "accepted" | "rejected";
   createdAt: any;
+  // Studio-specific fields
+  requestType?: "connection" | "studio_join";
+  studioId?: string;
+  studioName?: string;
+  studioOwnerId?: string;
+  studioOwnerName?: string;
 }
 
 const ConnectionRequests: React.FC = () => {
@@ -178,17 +184,17 @@ const ConnectionRequests: React.FC = () => {
     <div>
       <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
         <FiUserPlus />
-        Cereri de Conectare
+        Cereri de Conectare & Studio
       </h3>
 
       {requests.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 dark:bg-gray-900/50 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700">
           <FiUserPlus className="mx-auto text-5xl text-gray-400 mb-4" />
           <p className="text-lg font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Nu ai cereri de conectare
+            Nu ai cereri de conectare sau studio
           </p>
           <p className="text-sm text-gray-500 dark:text-gray-400">
-            Când alți utilizatori îți trimit cereri de conectare, acestea vor apărea aici
+            Când alți utilizatori îți trimit cereri de conectare sau de alăturare la studio, acestea vor apărea aici
           </p>
         </div>
       ) : (
@@ -223,10 +229,30 @@ const ConnectionRequests: React.FC = () => {
                     {request.senderName}
                   </div>
                   <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {request.senderAccountType === "producer"
-                      ? "Producător"
-                      : "Artist"}
+                    {request.requestType === "studio_join" ? (
+                      <div className="flex items-center gap-1">
+                        <FiHome className="text-xs" />
+                        <span>Vrea să se alăture la </span>
+                        <span className="font-medium text-indigo-600 dark:text-indigo-400">
+                          {request.studioName}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1">
+                        <FiUserPlus className="text-xs" />
+                        <span>
+                          {request.senderAccountType === "producer"
+                            ? "Producător"
+                            : "Artist"}
+                        </span>
+                      </div>
+                    )}
                   </div>
+                  {request.requestType === "studio_join" && (
+                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                      Cerere de alăturare la studio
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}
@@ -237,7 +263,9 @@ const ConnectionRequests: React.FC = () => {
                     className="flex items-center gap-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <FiCheck />
-                    <span>Acceptă</span>
+                    <span>
+                      {request.requestType === "studio_join" ? "Acceptă în studio" : "Acceptă"}
+                    </span>
                   </button>
                   <button
                     onClick={() => handleReject(request.id)}

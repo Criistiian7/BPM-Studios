@@ -98,7 +98,7 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                                 )}
                             </div>
                         </div>
-                    </div>
+                </div>
 
                     {/* Description */}
                     {user.description && (
@@ -123,12 +123,12 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                         )}
 
                         {/* Genre */}
-                        {user.genre && (
+                {user.genre && (
                             <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
                                 <FaMicrophone className="text-lg text-gray-500 dark:text-gray-400" />
-                                <span>{user.genre}</span>
-                            </div>
-                        )}
+                        <span>{user.genre}</span>
+                     </div>     
+                )}
 
                         {/* Email */}
                         {user.email && (
@@ -196,8 +196,8 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                                     >
                                         <FaFacebook className="text-xl" />
                                         <span className="font-semibold">Facebook</span>
-                                    </a>
-                                )}
+                        </a>
+                    )}
                                 {user.socialLinks.instagram && (
                                     <a
                                         href={user.socialLinks.instagram}
@@ -208,8 +208,8 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                                     >
                                         <FaInstagram className="text-xl" />
                                         <span className="font-semibold">Instagram</span>
-                                    </a>
-                                )}
+                        </a>
+                    )}
                                 {user.socialLinks.youtube && (
                                     <a
                                         href={user.socialLinks.youtube}
@@ -220,9 +220,9 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                                     >
                                         <FaYoutube className="text-xl" />
                                         <span className="font-semibold">YouTube</span>
-                                    </a>
-                                )}
-                            </div>
+                        </a>
+                    )}
+                </div>
                         </div>
                     )}
 
@@ -233,8 +233,8 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                         </div>
                     )}
                 </div>
+                </div>
             </div>
-        </div>
     );
 }
 

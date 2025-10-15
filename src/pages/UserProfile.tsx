@@ -176,84 +176,84 @@ const UserProfile: React.FC = () => {
               </div>
 
               {profile.description && (
-                <p className="text-gray-600 dark:text-gray-400 mb-4">
-                  {profile.description}
-                </p>
+              <p className="text-gray-600 dark:text-gray-400 mb-4">
+                {profile.description}
+              </p>
               )}
 
-              {/* Contact Info */}
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-6 space-y-3">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Informații de contact</h2>
+          {/* Contact Info */}
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-6 space-y-3">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Informații de contact</h2>
 
-                {profile.email && (
-                  <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                    <FiMail className="text-primary-500 flex-shrink-0" />
-                    <a href={`mailto:${profile.email}`} className="hover:text-primary-600 transition-colors">
+          {profile.email && (
+            <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+              <FiMail className="text-primary-500 flex-shrink-0" />
+              <a href={`mailto:${profile.email}`} className="hover:text-primary-600 transition-colors">
                       {profile.email}
-                    </a>
-                  </div>
-                )}
+              </a>
+            </div>
+          )}
 
-                {profile.phoneNumber && (
+          {profile.phoneNumber && (
                   <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                    <FiPhone className="text-primary-500 flex-shrink-0" />
-                    <a href={`tel:${profile.phoneNumber}`} className="hover:text-primary-500 transition-colors">
-                      {profile.phoneNumber}
-                    </a>
-                  </div>
-                )}
+              <FiPhone className="text-primary-500 flex-shrink-0" />
+              <a href={`tel:${profile.phoneNumber}`} className="hover:text-primary-500 transition-colors">
+                {profile.phoneNumber}
+              </a>
+            </div>
+          )}
 
-                {profile.location && (
-                  <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
-                    <FiMapPin className="text-primary-500 flex-shrink-0" />
-                    <span>{profile.location}</span>
-                  </div>
-                )}
-              </div>
+          {profile.location && (
+            <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
+              <FiMapPin className="text-primary-500 flex-shrink-0" />
+              <span>{profile.location}</span>
+            </div>
+          )}
+        </div>
 
-              {/* Social Media */}
-              {(profile.socialLinks?.facebook || profile.socialLinks?.instagram || profile.socialLinks?.youtube) && (
-                <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Social Media</h2>
+        {/* Social Media */}
+        {(profile.socialLinks?.facebook || profile.socialLinks?.instagram || profile.socialLinks?.youtube) && (
+          <div className="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Social Media</h2>
                   <div className="flex gap-3 flex-wrap">
-                    {profile.socialLinks.facebook && (
-                      <a
-                        href={profile.socialLinks.facebook}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] text-white rounded-lg hover:bg-[#0d65d9] transition-colors shadow-md"
-                      >
-                        <FaFacebook className="text-xl" />
-                        <span className="font-semibold">Facebook</span>
-                      </a>
-                    )}
-                    {profile.socialLinks.instagram && (
-                      <a
-                        href={profile.socialLinks.instagram}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white rounded-lg hover:opacity-90 transition-opacity shadow-md"
-                      >
-                        <FaInstagram className="text-xl" />
-                        <span className="font-semibold">Instagram</span>
-                      </a>
-                    )}
-                    {profile.socialLinks.youtube && (
-                      <a
-                        href={profile.socialLinks.youtube}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 px-4 py-2 bg-[#FF0000] text-white rounded-lg hover:bg-[#cc0000] transition-colors shadow-md"
-                      >
-                        <FaYoutube className="text-xl" />
-                        <span className="font-semibold">YouTube</span>
-                      </a>
-                    )}
-                  </div>
-                </div>
+              {profile.socialLinks.facebook && (
+                <a
+                  href={profile.socialLinks.facebook}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#1877F2] text-white rounded-lg hover:bg-[#0d65d9] transition-colors shadow-md"
+                >
+                  <FaFacebook className="text-xl" />
+                  <span className="font-semibold">Facebook</span>
+                </a>
+              )}
+              {profile.socialLinks.instagram && (
+                <a
+                  href={profile.socialLinks.instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#833AB4] via-[#FD1D1D] to-[#F77737] text-white rounded-lg hover:opacity-90 transition-opacity shadow-md"
+                >
+                  <FaInstagram className="text-xl" />
+                  <span className="font-semibold">Instagram</span>
+                </a>
+              )}
+              {profile.socialLinks.youtube && (
+                <a
+                  href={profile.socialLinks.youtube}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#FF0000] text-white rounded-lg hover:bg-[#cc0000] transition-colors shadow-md"
+                >
+                  <FaYoutube className="text-xl" />
+                  <span className="font-semibold">YouTube</span>
+                </a>
               )}
             </div>
           </div>
+        )}
+      </div>
+    </div>
 
           {/* Tracks Section - SEPARAT SUB containerul principal */}
           <div className="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 mt-6">
