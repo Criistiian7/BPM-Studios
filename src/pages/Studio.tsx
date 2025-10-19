@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useAuth } from "../context/authContext";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { db, storage } from "../firebase";
 import {
   doc,
@@ -17,28 +17,65 @@ import {
   FiMusic,
   FiUsers,
   FiX,
-  FiPlay,
-  FiEdit,
-  FiTrash2
+  FiMapPin,
+  FiPhone,
+  FiMail,
+  FiUpload,
+  FiCheck
 } from "react-icons/fi";
+import { FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
 import type { Studio as StudioType, StudioMember } from "../types/studio";
 import type { Track } from "../types/track";
+import AlertModal from "../components/AlertModal";
+import { useAlert } from "../hooks/useAlert";
+import AudioPlayer from "../components/AudioPlayer";
+import { slugify } from "../utils/slugify";
 
 const Studio: React.FC = () => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const { alert: alertState, showSuccess, showError, showWarning, closeAlert } = useAlert();
   const [initializing, setInitializing] = useState(true);
   const [studio, setStudio] = useState<StudioType | null>(null);
   const [tracks, setTracks] = useState<Track[]>([]);
   const [members, setMembers] = useState<StudioMember[]>([]);
   const [activeTab, setActiveTab] = useState<"tracks" | "members">("tracks");
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [autoPlayTrackId, setAutoPlayTrackId] = useState<string | null>(null);
+  const trackRefs = React.useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   // Edit form states
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [editPhotoURL, setEditPhotoURL] = useState<string | null>(null);
+  const [editEmail, setEditEmail] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editPhoneNumber, setEditPhoneNumber] = useState("");
+  const [editFacebook, setEditFacebook] = useState("");
+  const [editInstagram, setEditInstagram] = useState("");
+  const [editYoutube, setEditYoutube] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Upload track states
+  const [uploadTitle, setUploadTitle] = useState("");
+  const [uploadDescription, setUploadDescription] = useState("");
+  const [uploadGenre, setUploadGenre] = useState("");
+  const [uploadStatus, setUploadStatus] = useState<"Work in Progress" | "Pre-Release" | "Release">("Work in Progress");
+  const [uploadCollaborators, setUploadCollaborators] = useState<string[]>([]);
+  const [uploadAudioFile, setUploadAudioFile] = useState<File | null>(null);
+  const [uploadingTrack, setUploadingTrack] = useState(false);
+
+  // Reset autoPlayTrackId after it's been used
+  useEffect(() => {
+    if (autoPlayTrackId) {
+      const timer = setTimeout(() => {
+        setAutoPlayTrackId(null);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [autoPlayTrackId]);
 
   useEffect(() => {
     const loadStudio = async () => {
@@ -49,11 +86,18 @@ const Studio: React.FC = () => {
         const studioSnap = await getDoc(studioRef);
 
         if (studioSnap.exists()) {
-          const studioData = { id: studioSnap.id, ...studioSnap.data() } as StudioType;
+          const studioDataRaw = studioSnap.data();
+          const studioData = { id: studioSnap.id, ...studioDataRaw } as StudioType;
           setStudio(studioData);
           setEditName(studioData.name || "");
           setEditDescription(studioData.description || "");
           setEditPhotoURL(studioData.photoURL || null);
+          setEditEmail((studioDataRaw.email as string) || (studioDataRaw.ownerEmail as string) || user.email);
+          setEditLocation((studioDataRaw.location as string) || "");
+          setEditPhoneNumber((studioDataRaw.phoneNumber as string) || "");
+          setEditFacebook((studioDataRaw.socialLinks as any)?.facebook || "");
+          setEditInstagram((studioDataRaw.socialLinks as any)?.instagram || "");
+          setEditYoutube((studioDataRaw.socialLinks as any)?.youtube || "");
 
           // Fetch tracks
           const tracksRef = collection(db, "tracks");
@@ -97,7 +141,7 @@ const Studio: React.FC = () => {
       } catch (error) {
         console.error("Error loading studio:", error);
       } finally {
-      setInitializing(false);
+        setInitializing(false);
       }
     };
 
@@ -113,12 +157,12 @@ const Studio: React.FC = () => {
     if (!file || !user) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert("Fișierul este prea mare. Maxim 5MB.");
+      showWarning("Fișierul este prea mare. Maxim 5MB.");
       return;
     }
 
     if (!file.type.startsWith('image/')) {
-      alert("Te rog selectează o imagine validă.");
+      showWarning("Te rog selectează o imagine validă.");
       return;
     }
 
@@ -130,7 +174,7 @@ const Studio: React.FC = () => {
       setEditPhotoURL(url);
     } catch (error) {
       console.error("Error uploading image:", error);
-      alert("Eroare la încărcarea imaginii");
+      showError("Eroare la încărcarea imaginii. Te rog încearcă din nou.");
     } finally {
       setUploading(false);
     }
@@ -139,25 +183,114 @@ const Studio: React.FC = () => {
   const handleSaveStudio = async () => {
     if (!user || !studio) return;
 
+    // Validare email
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (editEmail.trim() && !emailRegex.test(editEmail.trim())) {
+      showWarning("Adresa de email nu este validă.");
+      return;
+    }
+
     setSaving(true);
     try {
       const studioRef = doc(db, "studios", user.id);
-      const updatedStudio: Partial<StudioType> = {
+      const updatedStudio: any = {
         name: editName.trim(),
         description: editDescription.trim(),
         photoURL: editPhotoURL,
-      updatedAt: new Date().toISOString(),
+        email: editEmail.trim() || null,
+        location: editLocation.trim(),
+        phoneNumber: editPhoneNumber.trim(),
+        socialLinks: {
+          facebook: editFacebook.trim() || null,
+          instagram: editInstagram.trim() || null,
+          youtube: editYoutube.trim() || null,
+        },
+        updatedAt: new Date().toISOString(),
       };
 
       await setDoc(studioRef, updatedStudio, { merge: true });
       setStudio({ ...studio, ...updatedStudio } as StudioType);
       setShowEditModal(false);
+      showSuccess("Studio-ul a fost actualizat cu succes!");
     } catch (error) {
       console.error("Error saving studio:", error);
-      alert("Eroare la salvarea studioului");
+      showError("Eroare la salvarea studioului. Te rog încearcă din nou.");
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleUploadTrack = async () => {
+    if (!user || !uploadAudioFile || !uploadTitle.trim()) {
+      showWarning("Te rog completează titlul și selectează un fișier audio.");
+      return;
+    }
+
+    setUploadingTrack(true);
+    try {
+      // Upload audio file to storage
+      const storageRef = ref(storage, `tracks/${user.id}/${Date.now()}_${uploadAudioFile.name}`);
+      const snapshot = await uploadBytes(storageRef, uploadAudioFile);
+      const audioURL = await getDownloadURL(snapshot.ref);
+
+      // Create track document in Firestore using the standardized API
+      const trackPayload = {
+        title: uploadTitle.trim(),
+        description: uploadDescription.trim(),
+        genre: uploadGenre.trim(),
+        status: uploadStatus,
+        audioURL,
+        ownerId: user.id,
+        ownerName: user.name || user.email || "Unknown",
+        uploadedByStudio: true, // Flag că a fost încărcat de studio
+        studioName: studio?.name || null, // Save studio name
+        studioId: studio?.id || user.id,
+        collaborators: uploadCollaborators,
+      };
+
+      const tracksRef = collection(db, "tracks");
+      const docPayload = {
+        ...trackPayload,
+        userId: user.id, // backward compatibility
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      await setDoc(doc(tracksRef), docPayload);
+
+      // Reload tracks
+      const tracksQuery = query(tracksRef, where("userId", "==", user.id));
+      const tracksSnap = await getDocs(tracksQuery);
+      const tracksData: Track[] = [];
+      tracksSnap.forEach((doc) => {
+        tracksData.push({ id: doc.id, ...doc.data() } as Track);
+      });
+      setTracks(tracksData);
+
+      // Reset form
+      setUploadTitle("");
+      setUploadDescription("");
+      setUploadGenre("");
+      setUploadStatus("Work in Progress");
+      setUploadCollaborators([]);
+      setUploadAudioFile(null);
+      setShowUploadModal(false);
+
+      showSuccess("Track-ul a fost încărcat cu succes!");
+    } catch (error) {
+      console.error("Error uploading track:", error);
+      showError("Eroare la încărcarea track-ului. Te rog încearcă din nou.");
+    } finally {
+      setUploadingTrack(false);
+    }
+  };
+
+  const toggleCollaborator = (memberId: string) => {
+    setUploadCollaborators(prev =>
+      prev.includes(memberId)
+        ? prev.filter(id => id !== memberId)
+        : [...prev, memberId]
+    );
   };
 
   const getInitials = (name: string) => {
@@ -198,6 +331,7 @@ const Studio: React.FC = () => {
                   <img
                     src={studio.photoURL}
                     alt={studio.name}
+                    loading="lazy"
                     className="w-24 h-24 rounded-lg object-cover border-2 border-gray-200 dark:border-gray-700 shadow-lg"
                   />
                 ) : (
@@ -216,6 +350,71 @@ const Studio: React.FC = () => {
                 <p className="text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
                   {studio.description || "Fără descriere"}
                 </p>
+
+                {/* Contact Info */}
+                <div className="space-y-2 mb-4">
+                  {(studio as any).location && (
+                    <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm">
+                      <FiMapPin className="text-indigo-600 dark:text-indigo-400" />
+                      <span>{(studio as any).location}</span>
+                    </div>
+                  )}
+                  {(studio as any).phoneNumber && (
+                    <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm">
+                      <FiPhone className="text-indigo-600 dark:text-indigo-400" />
+                      <a href={`tel:${(studio as any).phoneNumber}`} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                        {(studio as any).phoneNumber}
+                      </a>
+                    </div>
+                  )}
+                  {((studio as any).email || user.email) && (
+                    <div className="flex items-center gap-2 text-gray-700 dark:text-gray-300 text-sm">
+                      <FiMail className="text-indigo-600 dark:text-indigo-400" />
+                      <a href={`mailto:${(studio as any).email || user.email}`} className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+                        {(studio as any).email || user.email}
+                      </a>
+                    </div>
+                  )}
+                </div>
+
+                {/* Social Media */}
+                {((studio as any).socialLinks?.facebook || (studio as any).socialLinks?.instagram || (studio as any).socialLinks?.youtube) && (
+                  <div className="flex items-center gap-3 mb-4">
+                    {(studio as any).socialLinks?.facebook && (
+                      <a
+                        href={(studio as any).socialLinks.facebook}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 text-gray-500 hover:text-[#1877F2] hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all"
+                        title="Facebook"
+                      >
+                        <FaFacebook className="text-xl" />
+                      </a>
+                    )}
+                    {(studio as any).socialLinks?.instagram && (
+                      <a
+                        href={(studio as any).socialLinks.instagram}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 text-gray-500 hover:text-[#E4405F] hover:bg-pink-50 dark:hover:bg-pink-500/10 rounded-lg transition-all"
+                        title="Instagram"
+                      >
+                        <FaInstagram className="text-xl" />
+                      </a>
+                    )}
+                    {(studio as any).socialLinks?.youtube && (
+                      <a
+                        href={(studio as any).socialLinks.youtube}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-2 text-gray-500 hover:text-[#FF0000] hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-all"
+                        title="YouTube"
+                      >
+                        <FaYoutube className="text-xl" />
+                      </a>
+                    )}
+                  </div>
+                )}
 
                 {/* Stats */}
                 <div className="flex items-center gap-6 text-sm">
@@ -237,14 +436,26 @@ const Studio: React.FC = () => {
               </div>
             </div>
 
-            {/* Right: Edit Button */}
-            <button
-              onClick={() => setShowEditModal(true)}
-              className="flex items-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors shadow-md"
-            >
-              <FiEdit2 />
-              <span>Editează Studio</span>
-            </button>
+            {/* Right: Action Buttons */}
+            <div className="flex items-center gap-3">
+              {/* Upload Track Button */}
+              <button
+                onClick={() => setShowUploadModal(true)}
+                className="p-3 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-all"
+                title="Upload Track"
+              >
+                <FiUpload className="text-xl" />
+              </button>
+
+              {/* Edit Studio Button */}
+              <button
+                onClick={() => setShowEditModal(true)}
+                className="p-3 text-gray-600 dark:text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-lg transition-all"
+                title="Editează Studio"
+              >
+                <FiEdit2 className="text-xl" />
+              </button>
+            </div>
           </div>
         </div>
 
@@ -280,7 +491,7 @@ const Studio: React.FC = () => {
           {/* Tab Content */}
           <div className="p-6">
             {activeTab === "tracks" ? (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 {tracks.length === 0 ? (
                   <div className="text-center py-12 text-gray-500 dark:text-gray-400">
                     <FiMusic className="mx-auto text-5xl mb-4 opacity-50" />
@@ -288,46 +499,84 @@ const Studio: React.FC = () => {
                     <p className="text-sm">Track-urile tale vor apărea aici</p>
                   </div>
                 ) : (
-                  tracks.map((track) => (
+                  tracks.map((track, index) => (
                     <div
                       key={track.id}
-                      className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-900 transition-colors"
+                      ref={(el) => {
+                        trackRefs.current[track.id] = el;
+                      }}
+                      className="border border-slate-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-800 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 hover:shadow-xl hover:shadow-slate-300/50 dark:hover:shadow-slate-900/70 transition-all duration-300 overflow-hidden hover:border-blue-300 dark:hover:border-blue-600"
                     >
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white">
-                          <FiMusic className="text-xl" />
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-gray-900 dark:text-white mb-1">
-                            {track.title}
-                          </h3>
-                          <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
-                            <span>{track.genre}</span>
-                            <span>•</span>
-                            <span
-                              className={`px-2 py-0.5 rounded text-xs font-medium ${track.status === "Release"
-                                ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
-                                : track.status === "Pre-Release"
-                                  ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
-                                  : "bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-400"
-                                }`}
-                            >
-                              {track.status}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <button className="p-2 text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 transition-colors">
-                          <FiPlay />
-                        </button>
-                        <button className="p-2 text-gray-600 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300 transition-colors">
-                          <FiEdit />
-                        </button>
-                        <button className="p-2 text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
-                          <FiTrash2 />
-                        </button>
-                      </div>
+                      {track.audioURL && (
+                        <AudioPlayer
+                          audioURL={track.audioURL}
+                          title={track.title}
+                          genre={track.genre}
+                          status={track.status}
+                          uploadedBy={
+                            (track as any).uploadedByStudio && (track as any).studioName
+                              ? (track as any).studioName
+                              : (track as any).ownerName || user?.name || "Studio"
+                          }
+                          uploadedById={
+                            (track as any).uploadedByStudio && (track as any).studioId
+                              ? (track as any).studioId
+                              : user?.id
+                          }
+                          trackId={track.id}
+                          currentUserId={user?.id}
+                          currentUserName={user?.name || user?.email || "Unknown"}
+                          collaborators={track.collaborators || []}
+                          onUploadedByClick={() => {
+                            // Dacă e încărcat de studio, navighează la profil studio
+                            if ((track as any).uploadedByStudio && (track as any).studioId && studio?.name) {
+                              const studioSlug = `${slugify(studio.name)}-${user.id.substring(0, 6)}`;
+                              navigate(`/profile/${studioSlug}`);
+                            } else if (user?.id) {
+                              // Track personal - navighează la profil personal
+                              const userSlug = `${slugify(user.name || 'user')}-${user.id.substring(0, 6)}`;
+                              navigate(`/profile/${userSlug}`);
+                            }
+                          }}
+                          onEdit={() => {
+                            // TODO: Implementează logica de editare pentru studio tracks
+                          }}
+                          onDelete={() => {
+                            // TODO: Implementează logica de ștergere pentru studio tracks
+                          }}
+                          onNext={(wasPlaying) => {
+                            if (index < tracks.length - 1) {
+                              const nextTrackId = tracks[index + 1].id;
+                              if (wasPlaying) {
+                                setAutoPlayTrackId(nextTrackId);
+                              }
+                              setTimeout(() => {
+                                trackRefs.current[nextTrackId]?.scrollIntoView({
+                                  behavior: "smooth",
+                                  block: "center",
+                                });
+                              }, 100);
+                            }
+                          }}
+                          onPrevious={(wasPlaying) => {
+                            if (index > 0) {
+                              const prevTrackId = tracks[index - 1].id;
+                              if (wasPlaying) {
+                                setAutoPlayTrackId(prevTrackId);
+                              }
+                              setTimeout(() => {
+                                trackRefs.current[prevTrackId]?.scrollIntoView({
+                                  behavior: "smooth",
+                                  block: "center",
+                                });
+                              }, 100);
+                            }
+                          }}
+                          hasNext={index < tracks.length - 1}
+                          hasPrevious={index > 0}
+                          autoPlay={autoPlayTrackId === track.id}
+                        />
+                      )}
                     </div>
                   ))
                 )}
@@ -351,6 +600,7 @@ const Studio: React.FC = () => {
                           <img
                             src={member.photoURL}
                             alt={member.displayName}
+                            loading="lazy"
                             className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
                           />
                         ) : (
@@ -384,7 +634,7 @@ const Studio: React.FC = () => {
       {/* Edit Studio Modal */}
       {showEditModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto scrollbar-custom">
             <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
                 Editează Studio
@@ -395,7 +645,7 @@ const Studio: React.FC = () => {
               >
                 <FiX className="text-xl" />
               </button>
-        </div>
+            </div>
 
             <div className="p-6 space-y-6">
               {/* Avatar Upload */}
@@ -413,9 +663,9 @@ const Studio: React.FC = () => {
                   ) : (
                     <div className="w-24 h-24 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white">
                       <FiMusic className="text-3xl" />
-          </div>
+                    </div>
                   )}
-          <div>
+                  <div>
                     <label
                       htmlFor="studio-avatar-upload"
                       className="inline-flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg cursor-pointer transition-colors text-sm font-medium"
@@ -434,8 +684,8 @@ const Studio: React.FC = () => {
                       PNG, JPG până la 5MB
                     </p>
                   </div>
-          </div>
-        </div>
+                </div>
+              </div>
 
               {/* Studio Name */}
               <div>
@@ -456,22 +706,140 @@ const Studio: React.FC = () => {
               </div>
 
               {/* Description */}
-          <div>
+              <div>
                 <label
                   htmlFor="studio-description"
                   className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
                 >
                   Descriere
                 </label>
-            <textarea
+                <textarea
                   id="studio-description"
                   value={editDescription}
                   onChange={(e) => setEditDescription(e.target.value)}
-                  rows={6}
+                  rows={4}
                   className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors resize-none"
                   placeholder="Descrie studioul tău, echipamentul, serviciile oferite..."
-            />
-          </div>
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label
+                  htmlFor="studio-email"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  Email Studio
+                </label>
+                <input
+                  id="studio-email"
+                  type="email"
+                  value={editEmail}
+                  onChange={(e) => setEditEmail(e.target.value)}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                  placeholder="contact@studio.com"
+                />
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Email pentru contact studio (poate fi diferit de email-ul tău personal)
+                </p>
+              </div>
+
+              {/* Location */}
+              <div>
+                <label
+                  htmlFor="studio-location"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  Locație
+                </label>
+                <input
+                  id="studio-location"
+                  type="text"
+                  value={editLocation}
+                  onChange={(e) => setEditLocation(e.target.value)}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                  placeholder="București, România"
+                />
+              </div>
+
+              {/* Phone Number */}
+              <div>
+                <label
+                  htmlFor="studio-phone"
+                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                >
+                  Număr de Telefon
+                </label>
+                <input
+                  id="studio-phone"
+                  type="tel"
+                  value={editPhoneNumber}
+                  onChange={(e) => setEditPhoneNumber(e.target.value)}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                  placeholder="+40 123 456 789"
+                />
+              </div>
+
+              {/* Social Media Links */}
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Social Media
+                </h3>
+
+                {/* Facebook */}
+                <div>
+                  <label
+                    htmlFor="studio-facebook"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
+                    Facebook
+                  </label>
+                  <input
+                    id="studio-facebook"
+                    type="url"
+                    value={editFacebook}
+                    onChange={(e) => setEditFacebook(e.target.value)}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                    placeholder="https://facebook.com/studio"
+                  />
+                </div>
+
+                {/* Instagram */}
+                <div>
+                  <label
+                    htmlFor="studio-instagram"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
+                    Instagram
+                  </label>
+                  <input
+                    id="studio-instagram"
+                    type="url"
+                    value={editInstagram}
+                    onChange={(e) => setEditInstagram(e.target.value)}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                    placeholder="https://instagram.com/studio"
+                  />
+                </div>
+
+                {/* YouTube */}
+                <div>
+                  <label
+                    htmlFor="studio-youtube"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
+                  >
+                    YouTube
+                  </label>
+                  <input
+                    id="studio-youtube"
+                    type="url"
+                    value={editYoutube}
+                    onChange={(e) => setEditYoutube(e.target.value)}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                    placeholder="https://youtube.com/studio"
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
@@ -487,11 +855,233 @@ const Studio: React.FC = () => {
                 className="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
               >
                 {saving ? "Se salvează..." : "Salvează"}
-            </button>
+              </button>
+            </div>
           </div>
-      </div>
         </div>
       )}
+
+      {/* Upload Track Modal */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto scrollbar-custom">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Upload Track
+              </h2>
+              <button
+                onClick={() => setShowUploadModal(false)}
+                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              >
+                <FiX className="text-xl" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Track Title */}
+              <div>
+                <label htmlFor="track-title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Nume Track *
+                </label>
+                <input
+                  id="track-title"
+                  type="text"
+                  value={uploadTitle}
+                  onChange={(e) => setUploadTitle(e.target.value)}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                  placeholder="Numele piesei"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label htmlFor="track-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Descriere
+                </label>
+                <textarea
+                  id="track-description"
+                  value={uploadDescription}
+                  onChange={(e) => setUploadDescription(e.target.value)}
+                  rows={3}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors resize-none"
+                  placeholder="Descrierea track-ului..."
+                />
+              </div>
+
+              {/* Genre and Status Row */}
+              <div className="grid grid-cols-2 gap-4">
+                {/* Genre */}
+                <div>
+                  <label htmlFor="track-genre" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Gen Muzical
+                  </label>
+                  <input
+                    id="track-genre"
+                    type="text"
+                    value={uploadGenre}
+                    onChange={(e) => setUploadGenre(e.target.value)}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                    placeholder="Hip-hop, Pop, etc."
+                  />
+                </div>
+
+                {/* Status */}
+                <div>
+                  <label htmlFor="track-status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Status
+                  </label>
+                  <select
+                    id="track-status"
+                    value={uploadStatus}
+                    onChange={(e) => setUploadStatus(e.target.value as any)}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                  >
+                    <option value="Work in Progress">Work in Progress</option>
+                    <option value="Pre-Release">Pre-Release</option>
+                    <option value="Release">Release</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Collaborators */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Colaboratori
+                </label>
+                <div className="space-y-2 max-h-48 overflow-y-auto p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 scrollbar-custom">
+                  {members.length === 0 ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                      Nu există membri în studio
+                    </p>
+                  ) : (
+                    members.map((member) => (
+                      <label
+                        key={member.id}
+                        className="flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={uploadCollaborators.includes(member.uid)}
+                          onChange={() => toggleCollaborator(member.uid)}
+                          className="w-5 h-5 text-indigo-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <div className="flex items-center gap-3 flex-1">
+                          {member.photoURL ? (
+                            <img
+                              src={member.photoURL}
+                              alt={member.displayName}
+                              loading="lazy"
+                              className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
+                              {getInitials(member.displayName)}
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900 dark:text-white text-sm">
+                              {member.displayName}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {member.accountType === "producer" ? "Producător" : "Artist"}
+                            </p>
+                          </div>
+                          {uploadCollaborators.includes(member.uid) && (
+                            <FiCheck className="text-indigo-600 dark:text-indigo-400" />
+                          )}
+                        </div>
+                      </label>
+                    ))
+                  )}
+                </div>
+                {uploadCollaborators.length > 0 && (
+                  <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-2">
+                    {uploadCollaborators.length} colaborator{uploadCollaborators.length > 1 ? 'i' : ''} selectat{uploadCollaborators.length > 1 ? 'i' : ''}
+                  </p>
+                )}
+              </div>
+
+              {/* Audio File Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Fișier Audio *
+                </label>
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors">
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    onChange={(e) => setUploadAudioFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                    id="audio-upload"
+                  />
+                  <label
+                    htmlFor="audio-upload"
+                    className="cursor-pointer flex flex-col items-center"
+                  >
+                    <FiUpload className="text-4xl text-gray-400 dark:text-gray-500 mb-3" />
+                    {uploadAudioFile ? (
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {uploadAudioFile.name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {(uploadAudioFile.size / (1024 * 1024)).toFixed(2)} MB
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Click pentru a selecta fișier audio
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          MP3, WAV, FLAC (max 50MB)
+                        </p>
+                      </div>
+                    )}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+              <button
+                onClick={() => setShowUploadModal(false)}
+                disabled={uploadingTrack}
+                className="px-6 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Anulează
+              </button>
+              <button
+                onClick={handleUploadTrack}
+                disabled={uploadingTrack || !uploadTitle.trim() || !uploadAudioFile}
+                className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                {uploadingTrack ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Se încarcă...</span>
+                  </>
+                ) : (
+                  <>
+                    <FiUpload />
+                    <span>Upload Track</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        type={alertState.type}
+        title={alertState.title}
+        message={alertState.message}
+      />
     </div>
   );
 };

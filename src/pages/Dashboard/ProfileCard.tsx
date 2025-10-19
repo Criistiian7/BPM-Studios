@@ -8,26 +8,37 @@ import { db } from "../../firebase";
 const ProfileCard: React.FC = () => {
   const { user } = useAuth();
   const [trackCount, setTrackCount] = React.useState<number>(0);
-  const [loadingTracks, setLoadingTracks] = React.useState(true);
+  const [projectCount, setProjectCount] = React.useState<number>(0);
+  const [loadingStats, setLoadingStats] = React.useState(true);
 
   React.useEffect(() => {
     if (!user) return;
 
-    const fetchTrackCount = async () => {
+    const fetchTrackStats = async () => {
       try {
         const tracksRef = collection(db, "tracks");
-        const q = query(tracksRef, where("ownerId", "==", user.id));
-        const snapshot = await getDocs(q);
-        setTrackCount(snapshot.size);
+        const allTracksQuery = query(tracksRef, where("ownerId", "==", user.id));
+        const allTracksSnapshot = await getDocs(allTracksQuery);
+
+        // Număr total de tracks
+        setTrackCount(allTracksSnapshot.size);
+
+        // Număr tracks cu status "Work in Progress" (= proiecte)
+        const wipTracks = allTracksSnapshot.docs.filter(doc => {
+          const trackData = doc.data();
+          return trackData.status === "Work in Progress";
+        });
+        setProjectCount(wipTracks.length);
       } catch (error) {
         console.error("Error counting tracks:", error);
         setTrackCount(0);
+        setProjectCount(0);
       } finally {
-        setLoadingTracks(false);
+        setLoadingStats(false);
       }
     };
 
-    fetchTrackCount();
+    fetchTrackStats();
   }, [user]);
 
   if (!user) return null;
@@ -189,7 +200,7 @@ const ProfileCard: React.FC = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
                 <div className="text-2xl font-bold text-indigo-600 dark:text-indigo-400">
-                  {loadingTracks ? (
+                  {loadingStats ? (
                     <div className="animate-pulse">...</div>
                   ) : (
                     trackCount
@@ -199,9 +210,13 @@ const ProfileCard: React.FC = () => {
                   Track-uri
                 </div>
               </div>
-              <div className="text-center p-3 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                  {user.statistics?.projectsCompleted || 0}
+              <div className="text-center p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
+                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                  {loadingStats ? (
+                    <div className="animate-pulse">...</div>
+                  ) : (
+                    projectCount
+                  )}
                 </div>
                 <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                   Proiecte

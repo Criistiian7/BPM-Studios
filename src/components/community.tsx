@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { db } from "../firebase";
 import { useAuth } from "../context/authContext";
 import {
@@ -8,14 +8,18 @@ import {
   where,
   addDoc,
   serverTimestamp,
+  onSnapshot,
 } from "firebase/firestore";
 import type { UserProfile } from "../types/user";
 import { FiUserPlus, FiCheck, FiUsers, FiHome, FiMapPin, FiStar } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { slugify } from "../utils/slugify";
+import AlertModal from "./AlertModal";
+import { useAlert } from "../hooks/useAlert";
 
 function Community() {
   const { user: currentUser } = useAuth();
+  const { alert: alertState, showWarning, showError, closeAlert } = useAlert();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [genreFilter, setTypeFilter] = useState("");
@@ -26,82 +30,96 @@ function Community() {
   const [studiosCount, setStudiosCount] = useState(0);
   const navigate = useNavigate();
 
-  // Fetch total counts pentru tab toggler
+  // Fetch total counts pentru tab toggler - ACTUALIZARE DINAMICĂ
   useEffect(() => {
-    const fetchCounts = async () => {
-      try {
-        // Count artists & producers
-        const usersRef = collection(db, "users");
-        const usersSnapshot = await getDocs(usersRef);
-        const artistsProducers = usersSnapshot.docs.filter(doc => {
-          const accountType = doc.data().accountType;
-          return accountType === "artist" || accountType === "producer";
-        });
-        setArtistsProducersCount(artistsProducers.length);
+    // Listener pentru users
+    const usersRef = collection(db, "users");
+    const unsubscribeUsers = onSnapshot(usersRef, (snapshot) => {
+      const artistsProducers = snapshot.docs.filter(doc => {
+        const accountType = doc.data().accountType;
+        return accountType === "artist" || accountType === "producer";
+      });
+      setArtistsProducersCount(artistsProducers.length);
+    }, (error) => {
+      console.error("Error fetching users count:", error);
+    });
 
-        // Count studios
-        const studiosRef = collection(db, "studios");
-        const studiosSnapshot = await getDocs(studiosRef);
-        setStudiosCount(studiosSnapshot.size);
-      } catch (error) {
-        console.error("Error fetching counts:", error);
-      }
+    // Listener pentru studios
+    const studiosRef = collection(db, "studios");
+    const unsubscribeStudios = onSnapshot(studiosRef, (snapshot) => {
+      setStudiosCount(snapshot.size);
+    }, (error) => {
+      console.error("Error fetching studios count:", error);
+    });
+
+    // Cleanup listeners
+    return () => {
+      unsubscribeUsers();
+      unsubscribeStudios();
     };
-
-    fetchCounts();
   }, []);
 
+  // Actualizare DINAMICĂ a datelor utilizatorilor/studio-urilor
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        if (genreFilter === "studio") {
-          // Fetch studios from the studios collection
-          const studiosRef = collection(db, "studios");
-          const querySnapshot = await getDocs(studiosRef);
-          const studiosData: any[] = [];
-          querySnapshot.forEach((doc) => {
-            const studioData = doc.data();
-            studiosData.push({
-              uid: doc.id, // Studio ID
-              displayName: studioData.name || "Studio",
-              email: studioData.ownerEmail,
-              photoURL: studioData.photoURL || studioData.ownerAvatar,
-              accountType: "studio",
-              description: studioData.description || "Studio de producție",
-              location: studioData.location || "",
-              genre: studioData.genre || "",
-              rating: studioData.rating || 0,
-              socialLinks: studioData.socialLinks || {},
-              statistics: studioData.statistics || { tracksUploaded: 0, projectsCompleted: 0 },
-              memberSince: studioData.createdAt || "",
-              studioId: doc.id,
-              // Studio-specific data
-              ownerId: studioData.ownerId,
-              ownerName: studioData.ownerName || studioData.name || "Owner",
-              ownerEmail: studioData.ownerEmail,
-              ownerAvatar: studioData.ownerAvatar,
-            });
+    let unsubscribe: (() => void) | undefined;
+
+    if (genreFilter === "studio") {
+      // Listener în timp real pentru studios
+      const studiosRef = collection(db, "studios");
+      unsubscribe = onSnapshot(studiosRef, (querySnapshot) => {
+        const studiosData: any[] = [];
+        querySnapshot.forEach((doc) => {
+          const studioData = doc.data();
+          studiosData.push({
+            uid: doc.id, // Studio ID
+            displayName: studioData.name || "Studio",
+            email: studioData.ownerEmail,
+            photoURL: studioData.photoURL || studioData.ownerAvatar,
+            accountType: "studio",
+            description: studioData.description || "Studio de producție",
+            location: studioData.location || "",
+            genre: studioData.genre || "",
+            rating: studioData.rating || 0,
+            socialLinks: studioData.socialLinks || {},
+            statistics: studioData.statistics || { tracksUploaded: 0, projectsCompleted: 0 },
+            memberSince: studioData.createdAt || "",
+            studioId: doc.id,
+            // Studio-specific data
+            ownerId: studioData.ownerId,
+            ownerName: studioData.ownerName || studioData.name || "Owner",
+            ownerEmail: studioData.ownerEmail,
+            ownerAvatar: studioData.ownerAvatar,
+            slug: studioData.slug,
           });
-          setUsers(studiosData);
-        } else {
-          // Fetch regular users
-        const usersRef = collection(db, "users");
-        const q = genreFilter
-            ? query(usersRef, where("accountType", "==", genreFilter))
-          : usersRef;
-        const querySnapshot = await getDocs(q);
+        });
+        setUsers(studiosData);
+      }, (error) => {
+        console.error("Error fetching studios:", error);
+      });
+    } else {
+      // Listener în timp real pentru regular users
+      const usersRef = collection(db, "users");
+      const q = genreFilter
+        ? query(usersRef, where("accountType", "==", genreFilter))
+        : usersRef;
+
+      unsubscribe = onSnapshot(q, (querySnapshot) => {
         const usersData: UserProfile[] = [];
         querySnapshot.forEach((doc) => {
           usersData.push({ uid: doc.id, ...doc.data() } as UserProfile);
         });
         setUsers(usersData);
-        }
-      } catch (error) {
-        console.error("Error fetching data", error);
+      }, (error) => {
+        console.error("Error fetching users:", error);
+      });
+    }
+
+    // Cleanup listener când componenta se demontează sau genreFilter se schimbă
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
       }
     };
-
-    fetchData();
   }, [genreFilter]);
 
   // Fetch existing requests and connections
@@ -144,13 +162,13 @@ function Community() {
     fetchRequestsAndConnections();
   }, [currentUser]);
 
-  const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
-  };
+  }, []);
 
-  const handleConnectClick = async (targetUser: UserProfile) => {
+  const handleConnectClick = useCallback(async (targetUser: UserProfile) => {
     if (!currentUser) {
-      alert("Trebuie să fii autentificat pentru a trimite cereri de conectare.");
+      showWarning("Trebuie să fii autentificat pentru a trimite cereri de conectare.");
       return;
     }
 
@@ -165,13 +183,11 @@ function Community() {
 
     // Check if already connected
     if (connectedUsers.has(receiverId)) {
-      console.log("Already connected to this user");
       return;
     }
 
     // Check if request already sent
     if (sentRequests.has(receiverId)) {
-      console.log("Request already sent to this user");
       return;
     }
 
@@ -200,11 +216,10 @@ function Community() {
       const existingSnapshot = await getDocs(existingRequestQuery);
 
       if (!existingSnapshot.empty) {
-        console.log("Request already exists");
         setSentRequests((prev) => new Set(prev).add(receiverId));
         setSendingRequest(null);
-      return;
-    }
+        return;
+      }
 
       // Create request document
       const requestData: any = {
@@ -231,17 +246,16 @@ function Community() {
       await addDoc(collection(db, "connectionRequests"), requestData);
 
       setSentRequests((prev) => new Set(prev).add(receiverId));
-      console.log(`${requestType} request sent successfully!`);
     } catch (error: any) {
       console.error("Error sending request: ", error);
       const requestTypeText = targetUser.accountType === "studio" ? "alăturare la studio" : "conectare";
-      alert(`Eroare la trimiterea cererii de ${requestTypeText}: ${error.message}`);
+      showError(`Eroare la trimiterea cererii de ${requestTypeText}: ${error.message}`);
     } finally {
       setSendingRequest(null);
     }
-  };
+  }, [currentUser, sentRequests, connectedUsers, showWarning, showError]);
 
-  const filteredUsers = users.filter((user) => {
+  const filteredUsers = useMemo(() => users.filter((user) => {
     // Exclude current user from the list
     if (currentUser && user.uid === currentUser.id) {
       return false;
@@ -254,7 +268,7 @@ function Community() {
       (user.accountType === "studio" && user.ownerName?.toLowerCase().includes(searchTerm.toLowerCase()));
 
     return matchesSearch;
-  });
+  }), [users, currentUser, searchTerm]);
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors">
@@ -264,23 +278,23 @@ function Community() {
         </h2>
 
         {/* Search Filter */}
-      <div className="mb-6">
+        <div className="mb-6">
           <label htmlFor="search" className="sr-only">
             Caută utilizatori
           </label>
-        <input
+          <input
             id="search"
             type="search"
             placeholder="Caută artiști, producători sau studiouri..."
             className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
-          value={searchTerm}
-          onChange={handleSearch}
+            value={searchTerm}
+            onChange={handleSearch}
             aria-label="Caută utilizatori după nume sau descriere"
-        />
-      </div>
+          />
+        </div>
 
         {/* Tab Toggler pentru tip utilizator cu contori dinamici */}
-      <div className="mb-6">
+        <div className="mb-6">
           <div className="flex bg-gray-200 dark:bg-gray-700 rounded-lg p-1">
             <button
               onClick={() => setTypeFilter("")}
@@ -303,10 +317,10 @@ function Community() {
               <span>Studiouri ({studiosCount})</span>
             </button>
           </div>
-      </div>
+        </div>
 
         {/* Users Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredUsers.map((user) => {
             const requestSent = sentRequests.has(user.uid);
             const isConnected = connectedUsers.has(user.uid);
@@ -344,7 +358,7 @@ function Community() {
                     {/* Studio Name */}
                     <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center mb-2">
                       {user.displayName || "Studio"}
-            </h3>
+                    </h3>
 
                     {/* Tip cont și Rating */}
                     <div className="flex items-center justify-center gap-2 mb-3">
@@ -353,14 +367,14 @@ function Community() {
                       </span>
                       <div className="flex items-center gap-1 text-yellow-500">
                         <FiStar className="fill-current text-sm" />
-                        <span className="text-sm font-semibold">{user.rating?.toFixed(1) || "0.0"}</span>
+                        <span className="text-sm font-semibold">{(user.rating || 0).toFixed(1)}</span>
                       </div>
-            </div>
+                    </div>
 
                     {/* Owner Info with Link */}
                     <div className="text-center mb-3">
                       <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Owner:</p>
-            <button
+                      <button
                         onClick={(e) => {
                           e.stopPropagation();
                           if (user.ownerId) {
@@ -374,8 +388,8 @@ function Community() {
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
-            </button>
-          </div>
+                      </button>
+                    </div>
 
                     {/* Description */}
                     <p className="text-gray-600 dark:text-gray-400 text-sm text-center mb-4 line-clamp-2">
@@ -391,6 +405,7 @@ function Community() {
                         <img
                           src={user.photoURL}
                           alt={user.displayName || "User"}
+                          loading="lazy"
                           className="w-16 h-16 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
                         />
                       ) : (
@@ -422,7 +437,7 @@ function Community() {
                         <FiStar className="fill-current text-sm" />
                         <span className="text-sm font-semibold">{user.rating?.toFixed(1) || "0.0"}</span>
                       </div>
-      </div>
+                    </div>
 
                     {/* Descriere */}
                     <p className="text-gray-600 dark:text-gray-400 text-sm text-center mb-3 line-clamp-2">
@@ -539,6 +554,15 @@ function Community() {
         )}
 
       </div>
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        type={alertState.type}
+        title={alertState.title}
+        message={alertState.message}
+      />
     </div>
   );
 }

@@ -6,8 +6,17 @@ export interface Studio {
   name: string;
   description: string;
   photoURL: string | null;
+  email?: string;
+  location?: string;
+  phoneNumber?: string;
+  socialLinks?: {
+    facebook: string | null;
+    instagram: string | null;
+    youtube: string | null;
+  };
   memberIds: string[];
   trackCount: number;
+  rating?: number;
   createdAt: string;
   updatedAt: string;
 }

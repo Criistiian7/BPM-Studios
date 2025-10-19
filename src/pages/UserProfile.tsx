@@ -29,9 +29,24 @@ const UserProfile: React.FC = () => {
       setLoadingTracks(true);
       try {
         const tracksRef = collection(db, "tracks");
-        const q = query(tracksRef, where("ownerId", "==", profile.uid));
-        const snapshot = await getDocs(q);
-        const tracks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Fetch tracks where user is owner OR collaborator
+        const ownerQuery = query(tracksRef, where("ownerId", "==", profile.uid));
+        const ownerSnapshot = await getDocs(ownerQuery);
+        const ownerTracks = ownerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Fetch tracks where user is collaborator
+        const collaboratorQuery = query(tracksRef, where("collaborators", "array-contains", profile.uid));
+        const collaboratorSnapshot = await getDocs(collaboratorQuery);
+        const collaboratorTracks = collaboratorSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Combine and deduplicate
+        const allTracksMap = new Map();
+        [...ownerTracks, ...collaboratorTracks].forEach(track => {
+          allTracksMap.set(track.id, track);
+        });
+        const tracks = Array.from(allTracksMap.values());
+
         setUserTracks(tracks);
         setTrackCount(tracks.length);
       } catch (error) {
@@ -62,9 +77,8 @@ const UserProfile: React.FC = () => {
       setError(null);
 
       try {
+        // PASUL 1: Caută în colecția users după câmpul slug
         const usersRef = collection(db, "users");
-
-        // PASUL 1: Caută după câmpul slug
         const slugQuery = query(usersRef, where("slug", "==", slug));
         const slugSnapshot = await getDocs(slugQuery);
 
@@ -75,7 +89,38 @@ const UserProfile: React.FC = () => {
           return;
         }
 
-        // PASUL 2: Fallback - caută prin toate documentele
+        // PASUL 2: Caută în colecția studios după câmpul slug
+        const studiosRef = collection(db, "studios");
+        const studiosSlugQuery = query(studiosRef, where("slug", "==", slug));
+        const studiosSlugSnapshot = await getDocs(studiosSlugQuery);
+
+        if (!studiosSlugSnapshot.empty) {
+          const studioData = studiosSlugSnapshot.docs[0].data();
+          const studioProfile: UserProfileType = {
+            uid: studiosSlugSnapshot.docs[0].id,
+            displayName: studioData.name || "Studio",
+            email: studioData.ownerEmail || "",
+            phoneNumber: studioData.phoneNumber || "",
+            photoURL: studioData.photoURL || studioData.ownerAvatar,
+            accountType: "studio",
+            description: studioData.description || "Studio de producție",
+            location: studioData.location || "",
+            genre: studioData.genre || "",
+            rating: studioData.rating || 0,
+            socialLinks: studioData.socialLinks || {},
+            statistics: studioData.statistics || { tracksUploaded: 0, projectsCompleted: 0 },
+            memberSince: studioData.createdAt || "",
+            slug: studioData.slug || slug,
+            // Studio-specific owner data
+            ownerId: studioData.ownerId,
+            ownerName: studioData.ownerName || studioData.name || "Owner",
+          };
+          setProfile(studioProfile);
+          setLoading(false);
+          return;
+        }
+
+        // PASUL 3: Fallback - caută prin toate documentele users
         const allUsersSnapshot = await getDocs(usersRef);
 
         for (const docSnapshot of allUsersSnapshot.docs) {
@@ -95,11 +140,48 @@ const UserProfile: React.FC = () => {
           }
         }
 
+        // PASUL 4: Fallback - caută prin toate documentele studios
+        const allStudiosSnapshot = await getDocs(studiosRef);
+
+        for (const docSnapshot of allStudiosSnapshot.docs) {
+          const studioData = docSnapshot.data();
+
+          // Generează slug din name + uid și compară
+          const baseSlug = slugify(studioData.name || '');
+          const generatedSlug = `${baseSlug}-${docSnapshot.id.substring(0, 6)}`;
+
+          if (generatedSlug === slug) {
+            const studioProfile: UserProfileType = {
+              uid: docSnapshot.id,
+              displayName: studioData.name || "Studio",
+              email: studioData.ownerEmail || "",
+              phoneNumber: studioData.phoneNumber || "",
+              photoURL: studioData.photoURL || studioData.ownerAvatar,
+              accountType: "studio",
+              description: studioData.description || "Studio de producție",
+              location: studioData.location || "",
+              genre: studioData.genre || "",
+              rating: studioData.rating || 0,
+              socialLinks: studioData.socialLinks || {},
+              statistics: studioData.statistics || { tracksUploaded: 0, projectsCompleted: 0 },
+              memberSince: studioData.createdAt || "",
+              slug: studioData.slug || slug,
+              // Studio-specific owner data
+              ownerId: studioData.ownerId,
+              ownerName: studioData.ownerName || studioData.name || "Owner",
+            };
+            setProfile(studioProfile);
+            setLoading(false);
+            return;
+          }
+        }
+
         // Nu s-a găsit nimic
         setError("Profilul nu a fost găsit.");
         setLoading(false);
 
       } catch (error) {
+        console.error("Error fetching profile:", error);
         setError("Eroare la încărcarea profilului.");
         setLoading(false);
       }
@@ -160,7 +242,7 @@ const UserProfile: React.FC = () => {
             {/* Avatar */}
             <div className="flex-shrink-0">
               {profile.photoURL ? (
-                <img src={profile.photoURL} alt={profile.displayName || "User"} className="w-32 h-32 rounded-full object-cover border-4 border-primary-500 shadow-lg" />
+                <img src={profile.photoURL} alt={profile.displayName || "User"} loading="lazy" className="w-32 h-32 rounded-full object-cover border-4 border-primary-500 shadow-lg" />
               ) : (
                 <div className="w-32 h-32 rounded-full bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center text-4xl font-bold text-white shadow-lg border-4 border-white dark:border-gray-700">
                   {initials}
@@ -170,18 +252,56 @@ const UserProfile: React.FC = () => {
 
             {/* Info de baza */}
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
                 {profile.displayName || "Utilizator"}
               </h1>
 
-              <div className="flex items-center gap-2 mb-3">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${profile.accountType === "producer" ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300" : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"}`}>
-                  {profile.accountType === "producer" ? "🎛️ Producător" : "🎤 Artist"}
+              {/* Owner Info pentru Studio */}
+              {profile.accountType === "studio" && profile.ownerId && (
+                <div className="mb-3">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Owner:</p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (profile.ownerId) {
+                        const ownerSlug = `${slugify(profile.ownerName || 'user')}-${profile.ownerId.substring(0, 6)}`;
+                        navigate(`/profile/${ownerSlug}`);
+                      }
+                    }}
+                    className="text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 font-semibold text-base flex items-center gap-1 transition-colors"
+                  >
+                    <span>{profile.ownerName || "Unknown Owner"}</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </button>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${profile.accountType === "studio"
+                  ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300"
+                  : profile.accountType === "producer"
+                    ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                    : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                  }`}>
+                  {profile.accountType === "studio"
+                    ? "🏢 Studio"
+                    : profile.accountType === "producer"
+                      ? "🎛️ Producător"
+                      : "🎤 Artist"}
                 </span>
 
-                {profile.rating > 0 && (
+                {profile.accountType === "studio" && (
                   <div className="flex items-center gap-1 text-yellow-500">
-                    <FiStar className="fill-current" />
+                    <FiStar className="fill-current text-sm" />
+                    <span className="text-sm font-semibold">{(profile.rating || 0).toFixed(1)}</span>
+                  </div>
+                )}
+
+                {profile.accountType !== "studio" && profile.rating !== undefined && profile.rating > 0 && (
+                  <div className="flex items-center gap-1 text-yellow-500">
+                    <FiStar className="fill-current text-sm" />
                     <span className="text-sm font-semibold">{profile.rating.toFixed(1)}</span>
                   </div>
                 )}
@@ -303,9 +423,26 @@ const UserProfile: React.FC = () => {
                         title={track.title}
                         genre={track.genre}
                         status={track.status}
-                        uploadedBy={profile?.displayName || profile?.email || "Unknown"}
+                        uploadedBy={
+                          (track as any).uploadedByStudio && (track as any).studioName
+                            ? (track as any).studioName
+                            : (track as any).ownerName || profile?.displayName || profile?.email || "Unknown"
+                        }
+                        uploadedById={
+                          (track as any).uploadedByStudio && (track as any).studioId
+                            ? (track as any).studioId
+                            : (track as any).ownerId || profile?.uid
+                        }
+                        trackId={track.id}
+                        currentUserId={currentUser?.id}
+                        currentUserName={currentUser?.name}
+                        collaborators={track.collaborators || []}
                         onUploadedByClick={() => {
-                          if (profile) {
+                          // Dacă e încărcat de studio, navighează la profil studio
+                          if ((track as any).uploadedByStudio && (track as any).studioId) {
+                            const studioSlug = `${slugify((track as any).studioName || 'studio')}-${(track as any).studioId.substring(0, 6)}`;
+                            navigate(`/profile/${studioSlug}`);
+                          } else if (profile) {
                             const slug = profile.slug || `${slugify(profile.displayName || '')}-${profile.uid.substring(0, 6)}`;
                             navigate(`/profile/${slug}`);
                           }
