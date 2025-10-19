@@ -9,6 +9,8 @@ import { FiArrowLeft, FiMail, FiUser, FiMapPin, FiPhone, FiMusic, FiSave, FiCame
 import { FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
 import type { UserProfile } from "../types/user";
 import { slugify } from "../utils/slugify";
+import { getInitials } from "../utils/formatters";
+import { LoadingSpinner } from "../components/common/LoadingSpinner";
 
 const STORAGE_KEY = "bpm_profile_edit_form_data";
 
@@ -236,26 +238,10 @@ const ProfileEdit: React.FC = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Loading...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen />;
   }
 
   if (!user) return <Navigate to="/auth" replace />;
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
-  };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors py-8">

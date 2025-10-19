@@ -8,6 +8,9 @@ import { FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
 import { slugify } from "../utils/slugify";
 import AudioPlayer from "../components/AudioPlayer";
 import { useAuth } from "../context/authContext";
+import { getInitials } from "../utils/formatters";
+import { LoadingSpinner } from "../components/common/LoadingSpinner";
+import { useTrackNavigation } from "../hooks/useTrackNavigation";
 
 const UserProfile: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -19,8 +22,9 @@ const UserProfile: React.FC = () => {
   const [trackCount, setTrackCount] = useState<number>(0);
   const [userTracks, setUserTracks] = useState<any[]>([]);
   const [loadingTracks, setLoadingTracks] = useState(false);
-  const [autoPlayTrackId, setAutoPlayTrackId] = useState<string | null>(null);
-  const trackRefs = React.useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  // Use track navigation hook
+  const { autoPlayTrackId, trackRefs, handleNext, handlePrevious } = useTrackNavigation(userTracks);
 
   useEffect(() => {
     if (!profile?.uid) return;
@@ -58,16 +62,6 @@ const UserProfile: React.FC = () => {
 
     fetchUserTracks();
   }, [profile?.uid]);
-
-  // Reset autoPlayTrackId after it's been used
-  useEffect(() => {
-    if (autoPlayTrackId) {
-      const timer = setTimeout(() => {
-        setAutoPlayTrackId(null);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [autoPlayTrackId]);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -191,11 +185,7 @@ const UserProfile: React.FC = () => {
   }, [slug]);
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen />;
   }
 
   if (error || !profile) {
@@ -216,12 +206,7 @@ const UserProfile: React.FC = () => {
     );
   }
 
-  const initials =
-    profile.displayName
-      ?.split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase() || "?";
+  const initials = profile.displayName ? getInitials(profile.displayName) : "?";
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 py-8">
@@ -455,30 +440,8 @@ const UserProfile: React.FC = () => {
                           // TODO: Implementează logica de ștergere
                           console.log("Delete track:", track.id);
                         } : undefined}
-                        onNext={(wasPlaying) => {
-                          if (index < userTracks.length - 1) {
-                            const nextTrackId = userTracks[index + 1].id;
-                            if (wasPlaying) {
-                              setAutoPlayTrackId(nextTrackId);
-                            }
-                            trackRefs.current[nextTrackId]?.scrollIntoView({
-                              behavior: 'smooth',
-                              block: 'center'
-                            });
-                          }
-                        }}
-                        onPrevious={(wasPlaying) => {
-                          if (index > 0) {
-                            const prevTrackId = userTracks[index - 1].id;
-                            if (wasPlaying) {
-                              setAutoPlayTrackId(prevTrackId);
-                            }
-                            trackRefs.current[prevTrackId]?.scrollIntoView({
-                              behavior: 'smooth',
-                              block: 'center'
-                            });
-                          }
-                        }}
+                        onNext={(wasPlaying) => handleNext(index, wasPlaying)}
+                        onPrevious={(wasPlaying) => handlePrevious(index, wasPlaying)}
                         hasNext={index < userTracks.length - 1}
                         hasPrevious={index > 0}
                         autoPlay={autoPlayTrackId === track.id}

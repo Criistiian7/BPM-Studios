@@ -6,6 +6,7 @@ import { db } from "../firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import { slugify } from "../utils/slugify";
 import { useNavigate } from "react-router-dom";
+import { formatTime } from "../utils/formatters";
 
 interface Collaborator {
     id: string;
@@ -288,13 +289,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
             audio.volume = 0;
             setIsMuted(true);
         }
-    };
-
-    const formatTime = (time: number) => {
-        if (isNaN(time)) return "0:00";
-        const minutes = Math.floor(time / 60);
-        const seconds = Math.floor(time % 60);
-        return `${minutes}:${seconds.toString().padStart(2, "0")}`;
     };
 
     const handleVolumeMouseEnter = () => {

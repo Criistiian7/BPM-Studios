@@ -30,6 +30,9 @@ import AlertModal from "../components/AlertModal";
 import { useAlert } from "../hooks/useAlert";
 import AudioPlayer from "../components/AudioPlayer";
 import { slugify } from "../utils/slugify";
+import { getInitials } from "../utils/formatters";
+import { LoadingSpinner } from "../components/common/LoadingSpinner";
+import { useTrackNavigation } from "../hooks/useTrackNavigation";
 
 const Studio: React.FC = () => {
   const { user, loading } = useAuth();
@@ -42,8 +45,6 @@ const Studio: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"tracks" | "members">("tracks");
   const [showEditModal, setShowEditModal] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
-  const [autoPlayTrackId, setAutoPlayTrackId] = useState<string | null>(null);
-  const trackRefs = React.useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   // Edit form states
   const [editName, setEditName] = useState("");
@@ -67,15 +68,8 @@ const Studio: React.FC = () => {
   const [uploadAudioFile, setUploadAudioFile] = useState<File | null>(null);
   const [uploadingTrack, setUploadingTrack] = useState(false);
 
-  // Reset autoPlayTrackId after it's been used
-  useEffect(() => {
-    if (autoPlayTrackId) {
-      const timer = setTimeout(() => {
-        setAutoPlayTrackId(null);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [autoPlayTrackId]);
+  // Use track navigation hook
+  const { autoPlayTrackId, trackRefs, handleNext, handlePrevious } = useTrackNavigation(tracks);
 
   useEffect(() => {
     const loadStudio = async () => {
@@ -293,24 +287,8 @@ const Studio: React.FC = () => {
     );
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
-  };
-
   if (loading || initializing) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600 dark:text-gray-400">Se încarcă...</p>
-        </div>
-      </div>
-    );
+    return <LoadingSpinner fullScreen />;
   }
 
   if (!user) return <Navigate to="/auth" replace />;
@@ -544,34 +522,8 @@ const Studio: React.FC = () => {
                           onDelete={() => {
                             // TODO: Implementează logica de ștergere pentru studio tracks
                           }}
-                          onNext={(wasPlaying) => {
-                            if (index < tracks.length - 1) {
-                              const nextTrackId = tracks[index + 1].id;
-                              if (wasPlaying) {
-                                setAutoPlayTrackId(nextTrackId);
-                              }
-                              setTimeout(() => {
-                                trackRefs.current[nextTrackId]?.scrollIntoView({
-                                  behavior: "smooth",
-                                  block: "center",
-                                });
-                              }, 100);
-                            }
-                          }}
-                          onPrevious={(wasPlaying) => {
-                            if (index > 0) {
-                              const prevTrackId = tracks[index - 1].id;
-                              if (wasPlaying) {
-                                setAutoPlayTrackId(prevTrackId);
-                              }
-                              setTimeout(() => {
-                                trackRefs.current[prevTrackId]?.scrollIntoView({
-                                  behavior: "smooth",
-                                  block: "center",
-                                });
-                              }, 100);
-                            }
-                          }}
+                          onNext={(wasPlaying) => handleNext(index, wasPlaying)}
+                          onPrevious={(wasPlaying) => handlePrevious(index, wasPlaying)}
                           hasNext={index < tracks.length - 1}
                           hasPrevious={index > 0}
                           autoPlay={autoPlayTrackId === track.id}

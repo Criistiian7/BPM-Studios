@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/authContext";
 import { FiHome, FiUser, FiUsers, FiMic, FiSun, FiMoon, FiSettings, FiLogOut } from "react-icons/fi";
+import { getInitials } from "../../utils/formatters";
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -76,15 +77,6 @@ const Navbar: React.FC = () => {
       : "text-gray-700 dark:text-gray-300 hover:bg-gray-100/80 dark:hover:bg-gray-800/50"
     }
   `;
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map(n => n[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
-  };
 
   return (
     <nav className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-gray-800 transition-colors">
