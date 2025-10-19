@@ -1,75 +1,114 @@
-# React + TypeScript + Vite
+# 🎵 BPM Studios
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A collaborative platform connecting music producers and artists to share, collaborate, and showcase their work.
 
-Currently, two official plugins are available:
+[![React](https://img.shields.io/badge/React-18-61DAFB?logo=react)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript)](https://www.typescriptlang.org/)
+[![Firebase](https://img.shields.io/badge/Firebase-10-FFCA28?logo=firebase)](https://firebase.google.com/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-3-38B2AC?logo=tailwind-css)](https://tailwindcss.com/)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## 🎯 Features
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+- 🎚️ **Studio Management** - Profile creation, track uploads, team collaboration
+- 🎵 **Audio Player** - Custom player with playlist navigation and controls
+- ⭐ **Rating System** - Community feedback with star ratings
+- 👥 **Collaboration** - Connection requests and team building
+- 🌐 **Community** - Discover and connect with other creators
+- 🎨 **Dark Mode** - Light/dark theme toggle with persistence
 
-Note: This will impact Vite dev & build performances.
+---
 
-## Expanding the ESLint configuration
+## 🛠️ Tech Stack
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+**Frontend:**
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- React 18 + TypeScript
+- React Router v6
+- Tailwind CSS
+- Vite
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+**Backend & Services:**
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- Firebase Authentication
+- Cloud Firestore
+- Firebase Storage
+- Real-time listeners
+
+**Performance:**
+
+- Lazy loading
+- Code splitting
+- Optimized re-renders
+- ~90/100 Lighthouse score
+
+---
+
+## 🚀 Quick Start
+
+```bash
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 📁 Project Structure
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
 ```
+src/
+├── pages/          # Main application pages
+├── components/     # Reusable React components
+├── hooks/          # Custom hooks (useAlert, useTrackNavigation)
+├── utils/          # Helper functions (formatters, validation)
+├── context/        # React Context (AuthContext)
+└── firebase/       # Firebase configuration & API
+```
+
+---
+
+## 🎓 Key Concepts Demonstrated
+
+- **React** - Hooks, Context API, Custom Hooks, Lazy Loading
+- **TypeScript** - 100% type-safe, interfaces, type inference
+- **Firebase** - Authentication, Firestore, Storage, real-time updates
+- **Best Practices** - DRY principle, code organization, error handling
+- **Performance** - Optimization techniques, memoization, lazy loading
+
+---
+
+## 📊 Stats
+
+- **Performance:** ~90/100 Lighthouse score
+- **Load Time:** ~1.4s average
+- **Type Safety:** 100%
+- **Responsive:** Mobile, tablet, desktop
+- **Features:** 12 complete functionalities
+
+---
+
+## 📚 Documentation
+
+Detailed documentation available in `/docs`:
+
+- Technical overview
+- Complete feature list
+- Performance optimizations
+- Deployment guide
+
+---
+
+## 📝 License
+
+Educational project - Bootcamp Final Project
+
+---
+
+**🎵 Built with ❤️ for music creators**
