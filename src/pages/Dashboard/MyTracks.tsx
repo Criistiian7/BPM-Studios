@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { slugify } from "../../utils/slugify";
 import AlertModal from "../../components/AlertModal";
 import { useAlert } from "../../hooks/useAlert";
+import { useTrackNavigation } from "../../hooks/useTrackNavigation";
 
 interface Contact {
   id: string;
@@ -28,8 +29,6 @@ const MyTracks: React.FC = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingTrack, setEditingTrack] = useState<any | null>(null);
   const [deletingTrack, setDeletingTrack] = useState<any | null>(null);
-  const [autoPlayTrackId, setAutoPlayTrackId] = useState<string | null>(null);
-  const trackRefs = React.useRef<{ [key: string]: HTMLDivElement | null }>({});
 
   // Upload states
   const [uploadTitle, setUploadTitle] = useState("");
@@ -41,6 +40,9 @@ const MyTracks: React.FC = () => {
   const [hasCollaborators, setHasCollaborators] = useState(false);
   const [selectedCollaborators, setSelectedCollaborators] = useState<string[]>([]);
   const [contacts, setContacts] = useState<Contact[]>([]);
+
+  // Use track navigation hook
+  const { autoPlayTrackId, trackRefs, handleNext, handlePrevious } = useTrackNavigation(tracks);
 
   useEffect(() => {
     if (!user) return;
@@ -88,16 +90,6 @@ const MyTracks: React.FC = () => {
 
     fetchContacts();
   }, [user]);
-
-  // Reset autoPlayTrackId after it's been used
-  useEffect(() => {
-    if (autoPlayTrackId) {
-      const timer = setTimeout(() => {
-        setAutoPlayTrackId(null);
-      }, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [autoPlayTrackId]);
 
   const handleUploadTrack = async () => {
     if (!user || !uploadAudioFile || !uploadTitle.trim()) {
@@ -627,30 +619,8 @@ const MyTracks: React.FC = () => {
                   }}
                   onEdit={() => setEditingTrack(t)}
                   onDelete={() => setDeletingTrack(t)}
-                  onNext={(wasPlaying) => {
-                    if (index < tracks.length - 1) {
-                      const nextTrackId = tracks[index + 1].id;
-                      if (wasPlaying) {
-                        setAutoPlayTrackId(nextTrackId);
-                      }
-                      trackRefs.current[nextTrackId]?.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center'
-                      });
-                    }
-                  }}
-                  onPrevious={(wasPlaying) => {
-                    if (index > 0) {
-                      const prevTrackId = tracks[index - 1].id;
-                      if (wasPlaying) {
-                        setAutoPlayTrackId(prevTrackId);
-                      }
-                      trackRefs.current[prevTrackId]?.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'center'
-                      });
-                    }
-                  }}
+                  onNext={(wasPlaying) => handleNext(index, wasPlaying)}
+                  onPrevious={(wasPlaying) => handlePrevious(index, wasPlaying)}
                   hasNext={index < tracks.length - 1}
                   hasPrevious={index > 0}
                   autoPlay={autoPlayTrackId === t.id}
