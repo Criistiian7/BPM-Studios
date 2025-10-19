@@ -34,6 +34,7 @@ export interface AppUser {
   id: string;
   name: string;
   email: string;
+  slug?: string;
   avatar?: string | null;
   accountType: AccountType;
   rating: number;

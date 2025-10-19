@@ -1,24 +1,46 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/authContext";
-import { fetchTracksByOwner, createTrackFirestore, updateTrackFirestore } from "../../firebase/api";
+import { fetchTracksByOwner, createTrackFirestore, updateTrackFirestore, type UpdateTrackPayload } from "../../firebase/api";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, storage } from "../../firebase";
-import { deleteDoc, doc } from "firebase/firestore";
+import { deleteDoc, doc, collection, query, where, getDocs, getDoc } from "firebase/firestore";
 import AudioPlayer from "../../components/AudioPlayer";
-import { FiEdit2, FiTrash2, FiX } from "react-icons/fi";
+import { FiTrash2, FiX, FiUpload, FiCheck } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { slugify } from "../../utils/slugify";
+import AlertModal from "../../components/AlertModal";
+import { useAlert } from "../../hooks/useAlert";
+
+interface Contact {
+  id: string;
+  connectedUserId: string;
+  connectedUserName: string;
+  connectedUserAvatar: string | null;
+}
 
 const MyTracks: React.FC = () => {
   const { user, refreshUser } = useAuth();
   const navigate = useNavigate();
+  const { alert: alertState, showSuccess, showError, showWarning, closeAlert } = useAlert();
   const [tracks, setTracks] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showUploadModal, setShowUploadModal] = useState(false);
   const [editingTrack, setEditingTrack] = useState<any | null>(null);
   const [deletingTrack, setDeletingTrack] = useState<any | null>(null);
   const [autoPlayTrackId, setAutoPlayTrackId] = useState<string | null>(null);
   const trackRefs = React.useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  // Upload states
+  const [uploadTitle, setUploadTitle] = useState("");
+  const [uploadDescription, setUploadDescription] = useState("");
+  const [uploadGenre, setUploadGenre] = useState("");
+  const [uploadStatus, setUploadStatus] = useState<"Work in Progress" | "Pre-Release" | "Release">("Work in Progress");
+  const [uploadAudioFile, setUploadAudioFile] = useState<File | null>(null);
+  const [uploadingTrack, setUploadingTrack] = useState(false);
+  const [hasCollaborators, setHasCollaborators] = useState(false);
+  const [selectedCollaborators, setSelectedCollaborators] = useState<string[]>([]);
+  const [contacts, setContacts] = useState<Contact[]>([]);
 
   useEffect(() => {
     if (!user) return;
@@ -31,6 +53,42 @@ const MyTracks: React.FC = () => {
       .catch(() => setLoading(false));
   }, [user]);
 
+  // Fetch contacts for collaborators dropdown
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchContacts = async () => {
+      try {
+        const contactsRef = collection(db, "connections");
+        const q = query(contactsRef, where("userId", "==", user.id));
+        const querySnapshot = await getDocs(q);
+        const contactsData: Contact[] = [];
+
+        for (const docSnapshot of querySnapshot.docs) {
+          const connectionData = docSnapshot.data();
+          const userRef = doc(db, "users", connectionData.connectedUserId);
+          const userDoc = await getDoc(userRef);
+
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            contactsData.push({
+              id: connectionData.connectedUserId,
+              connectedUserId: connectionData.connectedUserId,
+              connectedUserName: userData.name || userData.displayName || userData.email || "Unknown",
+              connectedUserAvatar: userData.photoURL || null,
+            });
+          }
+        }
+
+        setContacts(contactsData);
+      } catch (error) {
+        console.error("Error fetching contacts:", error);
+      }
+    };
+
+    fetchContacts();
+  }, [user]);
+
   // Reset autoPlayTrackId after it's been used
   useEffect(() => {
     if (autoPlayTrackId) {
@@ -40,6 +98,65 @@ const MyTracks: React.FC = () => {
       return () => clearTimeout(timer);
     }
   }, [autoPlayTrackId]);
+
+  const handleUploadTrack = async () => {
+    if (!user || !uploadAudioFile || !uploadTitle.trim()) {
+      showWarning("Te rog completează titlul și selectează un fișier audio.");
+      return;
+    }
+
+    setUploadingTrack(true);
+    try {
+      // Upload audio file to storage
+      const storageRef = ref(storage, `tracks/${user.id}/${Date.now()}_${uploadAudioFile.name}`);
+      const snapshot = await uploadBytes(storageRef, uploadAudioFile);
+      const audioURL = await getDownloadURL(snapshot.ref);
+
+      // Create track using existing function (from My Profile - not studio)
+      const collaboratorsToSave = hasCollaborators ? selectedCollaborators : [];
+
+      await createTrackFirestore({
+        title: uploadTitle.trim(),
+        description: uploadDescription.trim(),
+        status: uploadStatus,
+        genre: uploadGenre.trim(),
+        ownerId: user.id,
+        ownerName: user.name || user.email || "Unknown", // Save owner name
+        audioURL,
+        collaborators: collaboratorsToSave,
+        uploadedByStudio: false, // Track personal, nu de studio
+      });
+
+      // Reload tracks
+      const data = await fetchTracksByOwner(user.id);
+      setTracks(data);
+
+      // Reset form
+      setUploadTitle("");
+      setUploadDescription("");
+      setUploadGenre("");
+      setUploadStatus("Work in Progress");
+      setUploadAudioFile(null);
+      setHasCollaborators(false);
+      setSelectedCollaborators([]);
+      setShowUploadModal(false);
+
+      showSuccess("Track-ul a fost încărcat cu succes!");
+    } catch (error) {
+      console.error("Error uploading track:", error);
+      showError("Eroare la încărcarea track-ului. Te rog încearcă din nou.");
+    } finally {
+      setUploadingTrack(false);
+    }
+  };
+
+  const toggleCollaborator = (contactId: string) => {
+    setSelectedCollaborators(prev =>
+      prev.includes(contactId)
+        ? prev.filter(id => id !== contactId)
+        : [...prev, contactId]
+    );
+  };
 
   const UploadModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const UPLOAD_STORAGE_KEY = "bpm_upload_track_form_data";
@@ -218,6 +335,18 @@ const MyTracks: React.FC = () => {
     const [genre, setGenre] = useState(track.genre || "");
     const [status, setStatus] = useState<"Work in Progress" | "Pre-Release" | "Release">(track.status || "Work in Progress");
     const [submitting, setSubmitting] = useState(false);
+
+    // Colaboratori states
+    const [hasCollaborators, setHasCollaborators] = useState(track.collaborators && track.collaborators.length > 0);
+    const [selectedCollaborators, setSelectedCollaborators] = useState<string[]>(track.collaborators || []);
+
+    const toggleEditCollaborator = (contactId: string) => {
+      setSelectedCollaborators(prev =>
+        prev.includes(contactId)
+          ? prev.filter(id => id !== contactId)
+          : [...prev, contactId]
+      );
+    };
     const [error, setError] = useState<string | null>(null);
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -226,23 +355,30 @@ const MyTracks: React.FC = () => {
       setSubmitting(true);
       setError(null);
       try {
-        await updateTrackFirestore(track.id, {
+        const collaboratorsToSave = hasCollaborators ? selectedCollaborators : [];
+
+        const updatePayload: UpdateTrackPayload = {
           title,
           description,
           status,
           genre,
-        });
+          collaborators: collaboratorsToSave
+        };
+
+        await updateTrackFirestore(track.id, updatePayload);
 
         // Actualizează track-ul în state
         setTracks((prev) =>
           prev.map((t) =>
-            t.id === track.id ? { ...t, title, description, status, genre } : t
+            t.id === track.id ? { ...t, title, description, status, genre, collaborators: collaboratorsToSave } : t
           )
         );
 
         onClose();
+        showSuccess("Track-ul a fost actualizat cu succes!");
       } catch (err: any) {
         setError(err.message ?? "Update failed");
+        showError("Eroare la actualizarea track-ului.");
       } finally {
         setSubmitting(false);
       }
@@ -300,6 +436,83 @@ const MyTracks: React.FC = () => {
                 <option value="Release">Release</option>
               </select>
             </div>
+
+            {/* Colaboratori Section */}
+            <div>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={hasCollaborators}
+                  onChange={(e) => {
+                    setHasCollaborators(e.target.checked);
+                    if (!e.target.checked) {
+                      setSelectedCollaborators([]);
+                    }
+                  }}
+                  className="w-5 h-5 text-indigo-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  Există colaboratori?
+                </span>
+              </label>
+            </div>
+
+            {hasCollaborators && (
+              <div className="animate-fade-in">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Selectează Colaboratori
+                </label>
+                <div className="space-y-2 max-h-60 overflow-y-auto p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 scrollbar-custom">
+                  {contacts.length === 0 ? (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                      Nu ai contacte conectate încă
+                    </p>
+                  ) : (
+                    contacts.map((contact) => (
+                      <label
+                        key={contact.id}
+                        className="flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selectedCollaborators.includes(contact.connectedUserId)}
+                          onChange={() => toggleEditCollaborator(contact.connectedUserId)}
+                          className="w-5 h-5 text-indigo-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                        />
+                        <div className="flex items-center gap-3 flex-1">
+                          {contact.connectedUserAvatar ? (
+                            <img
+                              src={contact.connectedUserAvatar}
+                              alt={contact.connectedUserName}
+                              loading="lazy"
+                              className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
+                              {contact.connectedUserName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()}
+                            </div>
+                          )}
+                          <div className="flex-1">
+                            <p className="font-medium text-gray-900 dark:text-white text-sm">
+                              {contact.connectedUserName}
+                            </p>
+                          </div>
+                          {selectedCollaborators.includes(contact.connectedUserId) && (
+                            <FiCheck className="text-indigo-600 dark:text-indigo-400" />
+                          )}
+                        </div>
+                      </label>
+                    ))
+                  )}
+                </div>
+                {selectedCollaborators.length > 0 && (
+                  <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-2">
+                    {selectedCollaborators.length} colaborator{selectedCollaborators.length > 1 ? 'i' : ''} selectat{selectedCollaborators.length > 1 ? 'i' : ''}
+                  </p>
+                )}
+              </div>
+            )}
+
             {error && <div className="text-red-600 dark:text-red-400 text-sm bg-red-50 dark:bg-red-900/20 p-3 rounded-lg">{error}</div>}
             <div className="pt-2 flex justify-end gap-3">
               <button
@@ -363,10 +576,11 @@ const MyTracks: React.FC = () => {
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Piesele mele</h3>
         <button
           type="button"
-          onClick={() => setShowModal(true)}
-          className="px-4 py-2 bg-indigo-600 text-white rounded"
+          onClick={() => setShowUploadModal(true)}
+          className="p-3 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-all"
+          title="Upload Track"
         >
-          Upload Track
+          <FiUpload className="text-xl" />
         </button>
       </div>
 
@@ -377,7 +591,7 @@ const MyTracks: React.FC = () => {
           {tracks.map((t, index) => (
             <div
               key={t.id}
-              ref={(el) => (trackRefs.current[t.id] = el)}
+              ref={(el) => { trackRefs.current[t.id] = el; }}
               className="border border-slate-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-800 shadow-lg shadow-slate-200/50 dark:shadow-slate-900/50 hover:shadow-xl hover:shadow-slate-300/50 dark:hover:shadow-slate-900/70 transition-all duration-300 overflow-hidden hover:border-blue-300 dark:hover:border-blue-600"
             >
               {t.audioURL && (
@@ -386,13 +600,29 @@ const MyTracks: React.FC = () => {
                   title={t.title}
                   genre={t.genre}
                   status={t.status}
-                  uploadedBy={user?.name || user?.email || "Unknown"}
+                  uploadedBy={
+                    (t as any).uploadedByStudio && (t as any).studioName
+                      ? (t as any).studioName
+                      : (t as any).ownerName || user?.name || user?.email || "Unknown"
+                  }
+                  uploadedById={
+                    (t as any).uploadedByStudio && (t as any).studioId
+                      ? (t as any).studioId
+                      : (t as any).ownerId || user?.id
+                  }
+                  trackId={t.id}
+                  currentUserId={user?.id}
+                  currentUserName={user?.name}
+                  collaborators={t.collaborators || []}
                   onUploadedByClick={() => {
-                    if (user?.slug) {
-                      navigate(`/profile/${user.slug}`);
+                    // Dacă e încărcat de studio, navighează la profil studio
+                    if ((t as any).uploadedByStudio && (t as any).studioId && (t as any).studioName) {
+                      const studioSlug = `${slugify((t as any).studioName)}-${(t as any).studioId.substring(0, 6)}`;
+                      navigate(`/profile/${studioSlug}`);
                     } else if (user?.id) {
-                      const slug = `${slugify(user.name || user.email || 'user')}-${user.id.substring(0, 6)}`;
-                      navigate(`/profile/${slug}`);
+                      // Track personal - generează slug
+                      const userSlug = user?.slug || `${slugify(user.name || user.email || 'user')}-${user.id.substring(0, 6)}`;
+                      navigate(`/profile/${userSlug}`);
                     }
                   }}
                   onEdit={() => setEditingTrack(t)}
@@ -453,13 +683,250 @@ const MyTracks: React.FC = () => {
               await refreshUser();
               setTracks(tracks.filter(track => track.id !== deletingTrack.id));
               setDeletingTrack(null);
+              showSuccess("Track-ul a fost șters cu succes!");
             } catch (error) {
               console.error("Error deleting track:", error);
-              alert("Eroare la ștergerea track-ului");
+              showError("Eroare la ștergerea track-ului. Te rog încearcă din nou.");
             }
           }}
         />
       )}
+
+      {/* New Upload Modal with Collaborators */}
+      {showUploadModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto scrollbar-custom">
+            <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+                Upload Track
+              </h2>
+              <button
+                onClick={() => setShowUploadModal(false)}
+                className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+              >
+                <FiX className="text-xl" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-5">
+              {/* Track Title */}
+              <div>
+                <label htmlFor="upload-title" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Nume Track *
+                </label>
+                <input
+                  id="upload-title"
+                  type="text"
+                  value={uploadTitle}
+                  onChange={(e) => setUploadTitle(e.target.value)}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                  placeholder="Numele piesei"
+                />
+              </div>
+
+              {/* Description */}
+              <div>
+                <label htmlFor="upload-description" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Descriere
+                </label>
+                <textarea
+                  id="upload-description"
+                  value={uploadDescription}
+                  onChange={(e) => setUploadDescription(e.target.value)}
+                  rows={3}
+                  className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors resize-none"
+                  placeholder="Descrierea track-ului..."
+                />
+              </div>
+
+              {/* Genre and Status */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label htmlFor="upload-genre" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Gen Muzical
+                  </label>
+                  <input
+                    id="upload-genre"
+                    type="text"
+                    value={uploadGenre}
+                    onChange={(e) => setUploadGenre(e.target.value)}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                    placeholder="Hip-hop, Pop..."
+                  />
+                </div>
+
+                <div>
+                  <label htmlFor="upload-status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Status
+                  </label>
+                  <select
+                    id="upload-status"
+                    value={uploadStatus}
+                    onChange={(e) => setUploadStatus(e.target.value as any)}
+                    className="w-full border border-gray-300 dark:border-gray-600 rounded-lg px-4 py-3 bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-colors"
+                  >
+                    <option value="Work in Progress">Work in Progress</option>
+                    <option value="Pre-Release">Pre-Release</option>
+                    <option value="Release">Release</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Colaboratori Checkbox */}
+              <div>
+                <label className="flex items-center gap-3 cursor-pointer group">
+                  <input
+                    type="checkbox"
+                    checked={hasCollaborators}
+                    onChange={(e) => {
+                      setHasCollaborators(e.target.checked);
+                      if (!e.target.checked) {
+                        setSelectedCollaborators([]);
+                      }
+                    }}
+                    className="w-5 h-5 text-indigo-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                    Există colaboratori?
+                  </span>
+                </label>
+              </div>
+
+              {/* Colaboratori Dropdown - Apare doar dacă checkbox e checked */}
+              {hasCollaborators && (
+                <div className="animate-fade-in">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Selectează Colaboratori
+                  </label>
+                  <div className="space-y-2 max-h-60 overflow-y-auto p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-900 scrollbar-custom">
+                    {contacts.length === 0 ? (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                        Nu ai contacte conectate încă
+                      </p>
+                    ) : (
+                      contacts.map((contact) => (
+                        <label
+                          key={contact.id}
+                          className="flex items-center gap-3 p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg cursor-pointer transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={selectedCollaborators.includes(contact.connectedUserId)}
+                            onChange={() => toggleCollaborator(contact.connectedUserId)}
+                            className="w-5 h-5 text-indigo-600 bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 rounded focus:ring-2 focus:ring-indigo-500"
+                          />
+                          <div className="flex items-center gap-3 flex-1">
+                            {contact.connectedUserAvatar ? (
+                              <img
+                                src={contact.connectedUserAvatar}
+                                alt={contact.connectedUserName}
+                                loading="lazy"
+                                className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
+                                {contact.connectedUserName.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()}
+                              </div>
+                            )}
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-900 dark:text-white text-sm">
+                                {contact.connectedUserName}
+                              </p>
+                            </div>
+                            {selectedCollaborators.includes(contact.connectedUserId) && (
+                              <FiCheck className="text-indigo-600 dark:text-indigo-400" />
+                            )}
+                          </div>
+                        </label>
+                      ))
+                    )}
+                  </div>
+                  {selectedCollaborators.length > 0 && (
+                    <p className="text-sm text-indigo-600 dark:text-indigo-400 mt-2">
+                      {selectedCollaborators.length} colaborator{selectedCollaborators.length > 1 ? 'i' : ''} selectat{selectedCollaborators.length > 1 ? 'i' : ''}
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Audio File Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Fișier Audio *
+                </label>
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors">
+                  <input
+                    type="file"
+                    accept="audio/*"
+                    onChange={(e) => setUploadAudioFile(e.target.files?.[0] || null)}
+                    className="hidden"
+                    id="upload-audio"
+                  />
+                  <label htmlFor="upload-audio" className="cursor-pointer flex flex-col items-center">
+                    <FiUpload className="text-4xl text-gray-400 dark:text-gray-500 mb-3" />
+                    {uploadAudioFile ? (
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">
+                          {uploadAudioFile.name}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {(uploadAudioFile.size / (1024 * 1024)).toFixed(2)} MB
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          Click pentru a selecta fișier audio
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          MP3, WAV, FLAC (max 50MB)
+                        </p>
+                      </div>
+                    )}
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            {/* Footer Buttons */}
+            <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
+              <button
+                onClick={() => setShowUploadModal(false)}
+                disabled={uploadingTrack}
+                className="px-6 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Anulează
+              </button>
+              <button
+                onClick={handleUploadTrack}
+                disabled={uploadingTrack || !uploadTitle.trim() || !uploadAudioFile}
+                className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-green-400 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors flex items-center gap-2"
+              >
+                {uploadingTrack ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Se încarcă...</span>
+                  </>
+                ) : (
+                  <>
+                    <FiUpload />
+                    <span>Upload Track</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        type={alertState.type}
+        title={alertState.title}
+        message={alertState.message}
+      />
     </div>
   );
 };

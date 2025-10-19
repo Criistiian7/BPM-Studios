@@ -12,6 +12,8 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { FiUserPlus, FiCheck, FiX, FiHome } from "react-icons/fi";
+import AlertModal from "../../components/AlertModal";
+import { useAlert } from "../../hooks/useAlert";
 
 interface ConnectionRequest {
   id: string;
@@ -34,20 +36,19 @@ interface ConnectionRequest {
 
 const ConnectionRequests: React.FC = () => {
   const { user } = useAuth();
+  const { alert: alertState, showSuccess, showError, closeAlert } = useAlert();
   const [requests, setRequests] = useState<ConnectionRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) {
-      console.log("No user found in ConnectionRequests");
       setLoading(false);
       return;
     }
 
     const fetchRequests = async () => {
       try {
-        console.log("Fetching requests for user:", user.id, user.email);
         const requestsRef = collection(db, "connectionRequests");
         const q = query(
           requestsRef,
@@ -58,10 +59,8 @@ const ConnectionRequests: React.FC = () => {
         const requestsData: ConnectionRequest[] = [];
         querySnapshot.forEach((doc) => {
           const data = doc.data();
-          console.log("Request data:", doc.id, data);
           requestsData.push({ id: doc.id, ...data } as ConnectionRequest);
         });
-        console.log("Found requests:", requestsData.length, requestsData);
         setRequests(requestsData);
       } catch (error: any) {
         console.error("Error fetching requests:", error);
@@ -92,8 +91,7 @@ const ConnectionRequests: React.FC = () => {
       const existingSnapshot = await getDocs(existingConnectionQuery);
 
       if (!existingSnapshot.empty) {
-        console.log("Connection already exists, skipping creation");
-        // Just update request status and remove from UI
+        // Connection already exists, just update request status and remove from UI
         const requestRef = doc(db, "connectionRequests", request.id);
         await updateDoc(requestRef, {
           status: "accepted",
@@ -130,13 +128,12 @@ const ConnectionRequests: React.FC = () => {
         createdAt: serverTimestamp(),
       });
 
-      console.log("Connection created successfully between", user.id, "and", request.senderId);
-
       // Remove from local state
       setRequests((prev) => prev.filter((r) => r.id !== request.id));
+      showSuccess("Cererea a fost acceptată cu succes!");
     } catch (error) {
       console.error("Error accepting request:", error);
-      alert("Eroare la acceptarea cererii");
+      showError("Eroare la acceptarea cererii. Te rog încearcă din nou.");
     } finally {
       setProcessing(null);
     }
@@ -153,9 +150,10 @@ const ConnectionRequests: React.FC = () => {
 
       // Remove from local state
       setRequests((prev) => prev.filter((r) => r.id !== requestId));
+      showSuccess("Cererea a fost refuzată.");
     } catch (error) {
       console.error("Error rejecting request:", error);
-      alert("Eroare la refuzarea cererii");
+      showError("Eroare la refuzarea cererii. Te rog încearcă din nou.");
     } finally {
       setProcessing(null);
     }
@@ -210,6 +208,7 @@ const ConnectionRequests: React.FC = () => {
                   <img
                     src={request.senderAvatar}
                     alt={request.senderName}
+                    loading="lazy"
                     className="w-12 h-12 rounded-full object-cover"
                   />
                 ) : (
@@ -281,6 +280,15 @@ const ConnectionRequests: React.FC = () => {
           ))}
         </ul>
       )}
+
+      {/* Alert Modal */}
+      <AlertModal
+        isOpen={alertState.isOpen}
+        onClose={closeAlert}
+        type={alertState.type}
+        title={alertState.title}
+        message={alertState.message}
+      />
     </div>
   );
 };

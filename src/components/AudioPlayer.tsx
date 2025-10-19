@@ -1,5 +1,17 @@
-import React, { useState, useRef, useEffect } from "react";
-import { FiPlay, FiPause, FiVolume2, FiVolumeX, FiEdit2, FiTrash2, FiSkipBack, FiSkipForward, FiShuffle, FiRepeat } from "react-icons/fi";
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { FiPlay, FiPause, FiVolume2, FiVolumeX, FiEdit2, FiTrash2, FiSkipBack, FiSkipForward, FiShuffle, FiRepeat, FiStar } from "react-icons/fi";
+import RatingModal from "./RatingModal";
+import { saveTrackRating, getUserTrackRating, isConnectedToTrackOwner } from "../firebase/ratings";
+import { db } from "../firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import { slugify } from "../utils/slugify";
+import { useNavigate } from "react-router-dom";
+
+interface Collaborator {
+    id: string;
+    name: string;
+    slug: string;
+}
 
 interface AudioPlayerProps {
     audioURL: string;
@@ -7,6 +19,11 @@ interface AudioPlayerProps {
     genre?: string;
     status?: string;
     uploadedBy?: string;
+    uploadedById?: string;
+    trackId?: string;
+    currentUserId?: string;
+    currentUserName?: string;
+    collaborators?: string[]; // Array of collaborator IDs
     onUploadedByClick?: () => void;
     onEdit?: () => void;
     onDelete?: () => void;
@@ -24,6 +41,11 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     genre,
     status,
     uploadedBy,
+    uploadedById,
+    trackId,
+    currentUserId,
+    currentUserName,
+    collaborators = [],
     onUploadedByClick,
     onEdit,
     onDelete,
@@ -34,6 +56,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     autoPlay = false,
     className = ""
 }) => {
+    const navigate = useNavigate();
     const [isPlaying, setIsPlaying] = useState(false);
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
@@ -44,6 +67,117 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const [repeatMode, setRepeatMode] = useState<'off' | 'one'>('off');
     const audioRef = useRef<HTMLAudioElement>(null);
     const volumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Rating states
+    const [showRatingModal, setShowRatingModal] = useState(false);
+    const [currentRating, setCurrentRating] = useState(0);
+    const [canRate, setCanRate] = useState(false);
+    const [checkingConnection, setCheckingConnection] = useState(true);
+
+    // Collaborators states
+    const [collaboratorsList, setCollaboratorsList] = useState<Collaborator[]>([]);
+    const [loadingCollaborators, setLoadingCollaborators] = useState(false);
+
+    // Memoize collaborators array to prevent unnecessary re-renders
+    const collaboratorsKey = useMemo(() => 
+        collaborators?.join(',') || '', 
+    [collaborators]);
+
+    // Fetch collaborators data with real-time updates
+    useEffect(() => {
+        if (!collaborators || collaborators.length === 0) {
+            setCollaboratorsList([]);
+            setLoadingCollaborators(false);
+            return;
+        }
+
+        setLoadingCollaborators(true);
+        const unsubscribers: (() => void)[] = [];
+        const tempCollaborators: { [key: string]: Collaborator } = {};
+        let loadedCount = 0;
+
+        // Setup listeners for all collaborators
+        collaborators.forEach((collabId) => {
+            try {
+                const userDocRef = doc(db, "users", collabId);
+                
+                const unsubscribe = onSnapshot(
+                    userDocRef,
+                    (docSnapshot) => {
+                        if (docSnapshot.exists()) {
+                            const userData = docSnapshot.data();
+                            const userName = userData.name || userData.displayName || "Unknown";
+                            
+                            tempCollaborators[collabId] = {
+                                id: collabId,
+                                name: userName,
+                                slug: `${slugify(userName || 'user')}-${collabId.substring(0, 6)}`
+                            };
+
+                            loadedCount++;
+
+                            // Only update when all collaborators are loaded (first time)
+                            // or update immediately for subsequent changes
+                            if (loadedCount >= collaborators.length || Object.keys(tempCollaborators).length > 0) {
+                                const updatedList = collaborators
+                                    .map(id => tempCollaborators[id])
+                                    .filter(Boolean);
+
+                                setCollaboratorsList(updatedList);
+                                setLoadingCollaborators(false);
+                            }
+                        }
+                    },
+                    (error) => {
+                        console.error(`Error loading collaborator:`, error);
+                        loadedCount++;
+                        // Even on error, update the list
+                        if (loadedCount >= collaborators.length) {
+                            setLoadingCollaborators(false);
+                        }
+                    }
+                );
+
+                unsubscribers.push(unsubscribe);
+            } catch (error) {
+                console.error(`Error setting up listener:`, error);
+            }
+        });
+
+        // Cleanup all listeners on unmount or when collaborators change
+        return () => {
+            unsubscribers.forEach(unsub => unsub());
+        };
+    }, [collaboratorsKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // Check if user can rate (is connected to track owner)
+    useEffect(() => {
+        const checkRatingPermission = async () => {
+            if (!currentUserId || !uploadedById || !trackId) {
+                setCanRate(false);
+                setCheckingConnection(false);
+                return;
+            }
+
+            try {
+                const connected = await isConnectedToTrackOwner(currentUserId, uploadedById);
+                setCanRate(connected);
+
+                // Load current user's rating if they can rate
+                if (connected) {
+                    const rating = await getUserTrackRating(trackId, currentUserId);
+                    setCurrentRating(rating);
+                }
+            } catch (error) {
+                console.error("Error checking rating permission:", error);
+                setCanRate(false);
+            } finally {
+                setCheckingConnection(false);
+            }
+        };
+
+        checkRatingPermission();
+    }, [currentUserId, uploadedById, trackId]);
 
     useEffect(() => {
         const audio = audioRef.current;
@@ -183,11 +317,28 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
         setRepeatMode(repeatMode === 'off' ? 'one' : 'off');
     };
 
-    const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+    const handleSubmitRating = async (rating: number) => {
+        if (!currentUserId || !currentUserName || !uploadedById || !trackId) {
+            throw new Error("Missing required information for rating");
+        }
+
+        try {
+            await saveTrackRating(trackId, currentUserId, currentUserName, uploadedById, rating);
+            setCurrentRating(rating);
+            console.log(`✅ Rating saved: ${rating} stars`);
+        } catch (error) {
+            console.error("Error saving rating:", error);
+            throw error;
+        }
+    };
+
+    const progress = useMemo(() => 
+        duration > 0 ? (currentTime / duration) * 100 : 0,
+    [currentTime, duration]);
 
     return (
         <div className={`relative group ${className}`}>
-            <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-violet-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-6 backdrop-blur-sm">
+            <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-violet-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-6 backdrop-blur-sm rounded-2xl overflow-hidden">
                 {/* 3 Column Layout */}
                 <div className="flex items-center gap-6">
                     {/* LEFT: Track Info */}
@@ -204,25 +355,66 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
                                         </span>
                                     )}
                                     {status && (
-                                        <span className="text-xs px-2.5 py-1 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/20 dark:to-teal-500/20 text-emerald-700 dark:text-emerald-300 rounded-full font-semibold border border-emerald-200/50 dark:border-emerald-500/30">
+                                        <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${status === "Work in Progress"
+                                                ? "bg-gradient-to-r from-yellow-500/10 to-amber-500/10 dark:from-yellow-500/20 dark:to-amber-500/20 text-yellow-700 dark:text-yellow-300 border border-yellow-200/50 dark:border-yellow-500/30"
+                                                : status === "Pre-Release"
+                                                    ? "bg-gradient-to-r from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-500/30"
+                                                    : "bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/20 dark:to-teal-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-500/30"
+                                            }`}>
                                             {status}
                                         </span>
                                     )}
                                 </div>
                                 {uploadedBy && (
-                                    <p className="text-sm text-slate-600 dark:text-slate-400">
-                                        Uploaded by:{" "}
-                                        {onUploadedByClick ? (
-                                            <button
-                                                onClick={onUploadedByClick}
-                                                className="font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
-                                            >
-                                                {uploadedBy}
-                                            </button>
-                                        ) : (
-                                            <span className="font-semibold text-slate-700 dark:text-slate-300">{uploadedBy}</span>
+                                    <div className="space-y-1">
+                                        <p className="text-sm text-slate-600 dark:text-slate-400">
+                                            Uploaded by:{" "}
+                                            {onUploadedByClick ? (
+                                                <button
+                                                    onClick={onUploadedByClick}
+                                                    className="font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline transition-colors"
+                                                >
+                                                    {uploadedBy}
+                                                </button>
+                                            ) : (
+                                                <span className="font-semibold text-slate-700 dark:text-slate-300">{uploadedBy}</span>
+                                            )}
+                                        </p>
+
+                                        {/* Featuring with Collaborators */}
+                                        {!loadingCollaborators && collaboratorsList.length > 0 && (
+                                            <p className="text-sm text-slate-600 dark:text-slate-400">
+                                                Featuring with:{" "}
+                                                {collaboratorsList.slice(0, 2).map((collab, index) => (
+                                                    <span key={collab.id}>
+                                                        {index > 0 && ", "}
+                                                        <button
+                                                            onClick={() => navigate(`/profile/${collab.slug}`)}
+                                                            className="font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline transition-colors"
+                                                        >
+                                                            {collab.name}
+                                                        </button>
+                                                    </span>
+                                                ))}
+                                                {collaboratorsList.length > 2 && (
+                                                    <span className="font-semibold text-slate-700 dark:text-slate-300">
+                                                        {" "}și +{collaboratorsList.length - 2} {collaboratorsList.length - 2 === 1 ? 'altul' : 'alții'}
+                                                    </span>
+                                                )}
+                                            </p>
                                         )}
-                                    </p>
+                                        {canRate && !checkingConnection && (
+                                            <button
+                                                onClick={() => setShowRatingModal(true)}
+                                                className="flex items-center gap-1.5 text-xs text-yellow-600 dark:text-yellow-400 hover:text-yellow-700 dark:hover:text-yellow-300 transition-colors group/rate"
+                                            >
+                                                <FiStar className="text-sm group-hover/rate:fill-yellow-500" />
+                                                <span className="font-medium">
+                                                    {currentRating > 0 ? `Your rating: ${currentRating} ⭐` : 'Rate this Song'}
+                                                </span>
+                                            </button>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                         )}
@@ -436,6 +628,15 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
                 {/* Hidden Audio Element */}
                 <audio ref={audioRef} src={audioURL} preload="metadata" />
             </div>
+
+            {/* Rating Modal */}
+            <RatingModal
+                isOpen={showRatingModal}
+                onClose={() => setShowRatingModal(false)}
+                onSubmitRating={handleSubmitRating}
+                trackTitle={title || "Track"}
+                currentRating={currentRating}
+            />
         </div>
     );
 };

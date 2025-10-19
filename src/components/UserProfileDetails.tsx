@@ -1,15 +1,46 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { UserProfile } from '../types/user';
 import { FaFacebook, FaInstagram, FaYoutube, FaMapMarkerAlt, FaMicrophone, FaEnvelope, FaStar } from 'react-icons/fa';
 import { FiX, FiUser } from 'react-icons/fi';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '../firebase';
 
-interface UserProfileDetailsProps { 
-   user: UserProfile;
-   onClose: () => void; 
+interface UserProfileDetailsProps {
+    user: UserProfile;
+    onClose: () => void;
 }
 
 function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
     const modalRef = useRef<HTMLDivElement>(null);
+    const [projectCount, setProjectCount] = useState<number>(0);
+    const [loadingProjects, setLoadingProjects] = useState(true);
+
+    // Fetch project count (Work in Progress tracks)
+    useEffect(() => {
+        const fetchProjectCount = async () => {
+            if (!user.uid) return;
+
+            try {
+                const tracksRef = collection(db, "tracks");
+                const q = query(tracksRef, where("ownerId", "==", user.uid));
+                const snapshot = await getDocs(q);
+
+                // Count tracks with "Work in Progress" status
+                const wipTracks = snapshot.docs.filter(doc => {
+                    const trackData = doc.data();
+                    return trackData.status === "Work in Progress";
+                });
+                setProjectCount(wipTracks.length);
+            } catch (error) {
+                console.error("Error fetching project count:", error);
+                setProjectCount(0);
+            } finally {
+                setLoadingProjects(false);
+            }
+        };
+
+        fetchProjectCount();
+    }, [user.uid]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -46,7 +77,7 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
 
     return (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div 
+            <div
                 ref={modalRef}
                 className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
                 role="dialog"
@@ -98,7 +129,7 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                                 )}
                             </div>
                         </div>
-                </div>
+                    </div>
 
                     {/* Description */}
                     {user.description && (
@@ -123,18 +154,18 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                         )}
 
                         {/* Genre */}
-                {user.genre && (
+                        {user.genre && (
                             <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
                                 <FaMicrophone className="text-lg text-gray-500 dark:text-gray-400" />
-                        <span>{user.genre}</span>
-                     </div>     
-                )}
+                                <span>{user.genre}</span>
+                            </div>
+                        )}
 
                         {/* Email */}
                         {user.email && (
                             <div className="flex items-center gap-3 text-gray-700 dark:text-gray-300">
                                 <FaEnvelope className="text-lg text-gray-500 dark:text-gray-400" />
-                                <a 
+                                <a
                                     href={`mailto:${user.email}`}
                                     className="hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
                                 >
@@ -153,7 +184,7 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                     </div>
 
                     {/* Statistics */}
-                    {user.statistics && (user.statistics.tracksUploaded > 0 || user.statistics.projectsCompleted > 0) && (
+                    {user.statistics && (user.statistics.tracksUploaded > 0 || projectCount > 0) && (
                         <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
                             <h4 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">
                                 Statistici
@@ -168,11 +199,15 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                                     </div>
                                 </div>
                                 <div>
-                                    <div className="text-2xl font-bold text-purple-600 dark:text-purple-400">
-                                        {user.statistics.projectsCompleted}
+                                    <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                                        {loadingProjects ? (
+                                            <div className="animate-pulse">...</div>
+                                        ) : (
+                                            projectCount
+                                        )}
                                     </div>
                                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                                        Proiecte
+                                        Proiecte (WIP)
                                     </div>
                                 </div>
                             </div>
@@ -196,8 +231,8 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                                     >
                                         <FaFacebook className="text-xl" />
                                         <span className="font-semibold">Facebook</span>
-                        </a>
-                    )}
+                                    </a>
+                                )}
                                 {user.socialLinks.instagram && (
                                     <a
                                         href={user.socialLinks.instagram}
@@ -208,8 +243,8 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                                     >
                                         <FaInstagram className="text-xl" />
                                         <span className="font-semibold">Instagram</span>
-                        </a>
-                    )}
+                                    </a>
+                                )}
                                 {user.socialLinks.youtube && (
                                     <a
                                         href={user.socialLinks.youtube}
@@ -220,9 +255,9 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                                     >
                                         <FaYoutube className="text-xl" />
                                         <span className="font-semibold">YouTube</span>
-                        </a>
-                    )}
-                </div>
+                                    </a>
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -233,8 +268,8 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                         </div>
                     )}
                 </div>
-                </div>
             </div>
+        </div>
     );
 }
 

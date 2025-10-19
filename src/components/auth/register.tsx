@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/authContext";
+import AlertModal from "../AlertModal";
+import { useAlert } from "../../hooks/useAlert";
 import type { AccountType } from "../../types/user";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../../firebase";
@@ -14,6 +16,7 @@ const STORAGE_KEY = "bpm_register_form_data";
 
 const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
   const { register: registerUser } = useAuth();
+  const { alert: alertState, showSuccess, closeAlert } = useAlert();
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -141,8 +144,10 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
         );
       }
 
-      alert("✅ Cont creat cu succes! Te rugăm să te autentifici.");
-      onSwitchToLogin();
+      showSuccess("Cont creat cu succes! Te rugăm să te autentifici.");
+      setTimeout(() => {
+        onSwitchToLogin();
+      }, 1500);
     } catch (err: any) {
       const errorCode = err?.code || "";
 
@@ -441,6 +446,15 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
             Logare →
           </button>
         </p>
+
+        {/* Alert Modal */}
+        <AlertModal
+          isOpen={alertState.isOpen}
+          onClose={closeAlert}
+          type={alertState.type}
+          title={alertState.title}
+          message={alertState.message}
+        />
       </div>
     </div>
   );

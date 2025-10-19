@@ -296,3 +296,68 @@ div.rounded-full {
     contain-intrinsic-size: 0 500px;
   }
 }
+
+/* ===== Custom Scrollbar for Upload Forms ===== */
+.scrollbar-custom {
+  scrollbar-width: thin;
+  scrollbar-color: #6366f1 #e5e7eb;
+}
+
+.scrollbar-custom::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 12px;
+  margin: 2px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #8b5cf6 0%, #6366f1 50%, #ec4899 100%);
+  border-radius: 12px;
+  border: 2px solid #f3f4f6;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  transition: all 0.2s ease;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #a78bfa 0%, #818cf8 50%, #f472b6 100%);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.5);
+  transform: scaleX(1.3);
+  border-width: 1px;
+}
+
+.scrollbar-custom::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, #c084fc 0%, #a5b4fc 50%, #f9a8d4 100%);
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.7);
+}
+
+/* Dark mode scrollbar - Mai vizibil și colorat */
+.dark .scrollbar-custom {
+  scrollbar-color: #8b5cf6 #1f2937;
+}
+
+.dark .scrollbar-custom::-webkit-scrollbar-track {
+  background: #111827;
+  border: 1px solid #374151;
+}
+
+.dark .scrollbar-custom::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #a78bfa 0%, #8b5cf6 50%, #ec4899 100%);
+  border-color: #111827;
+  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.6);
+}
+
+.dark .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #c084fc 0%, #a78bfa 50%, #f472b6 100%);
+  box-shadow: 0 0 20px rgba(167, 139, 250, 0.8),
+    0 0 40px rgba(236, 72, 153, 0.4);
+  transform: scaleX(1.3);
+}
+
+.dark .scrollbar-custom::-webkit-scrollbar-thumb:active {
+  background: linear-gradient(180deg, #d8b4fe 0%, #c084fc 50%, #f9a8d4 100%);
+  box-shadow: 0 0 30px rgba(192, 132, 252, 1);
+}
