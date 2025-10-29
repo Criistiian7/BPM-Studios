@@ -9,9 +9,13 @@ import {
   addDoc,
   serverTimestamp,
   onSnapshot,
+  deleteDoc,
+  doc,
+  updateDoc,
+  getDoc,
 } from "firebase/firestore";
 import type { UserProfile } from "../types/user";
-import { FiUserPlus, FiCheck, FiUsers, FiHome, FiMapPin, FiStar } from "react-icons/fi";
+import { FiUserPlus, FiCheck, FiUsers, FiHome, FiMapPin, FiStar, FiX } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 import { slugify } from "../utils/slugify";
 import AlertModal from "./AlertModal";
@@ -22,7 +26,7 @@ function Community() {
   const { alert: alertState, showWarning, showError, closeAlert } = useAlert();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
-  const [genreFilter, setTypeFilter] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
   const [sendingRequest, setSendingRequest] = useState<string | null>(null);
   const [sentRequests, setSentRequests] = useState<Set<string>>(new Set());
   const [connectedUsers, setConnectedUsers] = useState<Set<string>>(new Set());
@@ -63,7 +67,7 @@ function Community() {
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
 
-    if (genreFilter === "studio") {
+    if (typeFilter === "studio") {
       // Listener în timp real pentru studios
       const studiosRef = collection(db, "studios");
       unsubscribe = onSnapshot(studiosRef, (querySnapshot) => {
@@ -99,8 +103,8 @@ function Community() {
     } else {
       // Listener în timp real pentru regular users
       const usersRef = collection(db, "users");
-      const q = genreFilter
-        ? query(usersRef, where("accountType", "==", genreFilter))
+      const q = typeFilter
+        ? query(usersRef, where("accountType", "==", typeFilter))
         : usersRef;
 
       unsubscribe = onSnapshot(q, (querySnapshot) => {
@@ -114,52 +118,93 @@ function Community() {
       });
     }
 
-    // Cleanup listener când componenta se demontează sau genreFilter se schimbă
+    // Cleanup listener când componenta se demontează sau typeFilter se schimbă
     return () => {
       if (unsubscribe) {
         unsubscribe();
       }
     };
-  }, [genreFilter]);
+  }, [typeFilter]);
 
-  // Fetch existing requests and connections
+  // Fetch existing requests and connections - CU LISTENER REAL-TIME
   useEffect(() => {
     if (!currentUser) return;
 
-    const fetchRequestsAndConnections = async () => {
-      try {
-        // Fetch sent requests
-        const requestsRef = collection(db, "connectionRequests");
-        const sentQuery = query(
-          requestsRef,
-          where("senderId", "==", currentUser.id),
-          where("status", "==", "pending")
-        );
-        const sentSnapshot = await getDocs(sentQuery);
-        const sentIds = new Set<string>();
-        sentSnapshot.forEach((doc) => {
-          sentIds.add(doc.data().receiverId);
-        });
-        setSentRequests(sentIds);
 
-        // Fetch connections
-        const connectionsRef = collection(db, "connections");
-        const connectionsQuery = query(
-          connectionsRef,
-          where("userId", "==", currentUser.id)
-        );
-        const connectionsSnapshot = await getDocs(connectionsQuery);
-        const connectedIds = new Set<string>();
-        connectionsSnapshot.forEach((doc) => {
-          connectedIds.add(doc.data().connectedUserId);
-        });
-        setConnectedUsers(connectedIds);
-      } catch (error) {
-        console.error("Error fetching requests and connections:", error);
-      }
+    // Listener real-time pentru cererile trimise
+    const requestsRef = collection(db, "connectionRequests");
+    const sentQuery = query(
+      requestsRef,
+      where("senderId", "==", currentUser.id),
+      where("status", "==", "pending")
+    );
+
+    const unsubscribeSentRequests = onSnapshot(sentQuery, (snapshot) => {
+      const sentIds = new Set<string>();
+      snapshot.forEach((doc) => {
+        sentIds.add(doc.data().receiverId);
+      });
+
+
+      setSentRequests(sentIds);
+    }, (error) => {
+      console.error("Error in sent requests listener:", error);
+    });
+
+    // Listener real-time pentru conexiuni
+    const connectionsRef = collection(db, "connections");
+    const connectionsQuery = query(
+      connectionsRef,
+      where("userId", "==", currentUser.id)
+    );
+
+    const unsubscribeConnections = onSnapshot(connectionsQuery, (snapshot) => {
+      const connectedIds = new Set<string>();
+      snapshot.forEach((doc) => {
+        connectedIds.add(doc.data().connectedUserId);
+      });
+
+
+      setConnectedUsers(connectedIds);
+    }, (error) => {
+      console.error("Error in connections listener:", error);
+    });
+
+    // Listener real-time pentru cererile de studio acceptate
+    const studioRequestsQuery = query(
+      requestsRef,
+      where("senderId", "==", currentUser.id),
+      where("requestType", "==", "studio_join"),
+      where("status", "==", "accepted")
+    );
+
+    const unsubscribeStudioRequests = onSnapshot(studioRequestsQuery, (snapshot) => {
+      const studioConnectedIds = new Set<string>();
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        // Pentru studio-uri, conectarea se face cu owner-ul studio-ului
+        if (data.studioOwnerId) {
+          studioConnectedIds.add(data.studioOwnerId);
+        }
+      });
+
+
+      // Actualizează connectedUsers cu conexiunile de studio
+      setConnectedUsers(prev => {
+        const updated = new Set(prev);
+        studioConnectedIds.forEach(id => updated.add(id));
+        return updated;
+      });
+    }, (error) => {
+      console.error("Error in studio requests listener:", error);
+    });
+
+    // Cleanup listeners
+    return () => {
+      unsubscribeSentRequests();
+      unsubscribeConnections();
+      unsubscribeStudioRequests();
     };
-
-    fetchRequestsAndConnections();
   }, [currentUser]);
 
   const handleSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -196,15 +241,6 @@ function Community() {
     try {
       const requestType = targetUser.accountType === "studio" ? "studio_join" : "connection";
 
-      console.log(`Sending ${requestType} request:`, {
-        senderId: currentUser.id,
-        senderName: currentUser.name,
-        receiverId: receiverId,
-        receiverName: receiverName,
-        requestType: requestType,
-        studioId: targetUser.accountType === "studio" ? targetUser.uid : null,
-        studioName: targetUser.accountType === "studio" ? targetUser.displayName : null
-      });
 
       // Check for existing pending requests
       const existingRequestQuery = query(
@@ -255,6 +291,120 @@ function Community() {
     }
   }, [currentUser, sentRequests, connectedUsers, showWarning, showError]);
 
+  // Funcție pentru anularea unei cereri de conectare
+  const handleCancelRequest = useCallback(async (targetUser: UserProfile) => {
+    if (!currentUser) return;
+
+    try {
+      setSendingRequest(targetUser.uid);
+
+      // For studios, cancel request to the owner, not the studio itself
+      const receiverId = targetUser.accountType === "studio" && targetUser.ownerId
+        ? targetUser.ownerId
+        : targetUser.uid;
+
+      // Găsește și șterge cererea din baza de date
+      const requestsRef = collection(db, "connectionRequests");
+      const sentQuery = query(
+        requestsRef,
+        where("senderId", "==", currentUser.id),
+        where("receiverId", "==", receiverId),
+        where("status", "==", "pending")
+      );
+
+      const sentSnapshot = await getDocs(sentQuery);
+
+      if (!sentSnapshot.empty) {
+        // Șterge prima cerere găsită (ar trebui să fie doar una)
+        await deleteDoc(doc(db, "connectionRequests", sentSnapshot.docs[0].id));
+
+        // Actualizează state-ul local
+        setSentRequests((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(receiverId);
+          return newSet;
+        });
+
+        showWarning(`Cererea către ${targetUser.displayName || targetUser.email} a fost anulată.`);
+      }
+    } catch (error: any) {
+      console.error("Error canceling request: ", error);
+      showError("Eroare la anularea cererii. Te rugăm să încerci din nou.");
+    } finally {
+      setSendingRequest(null);
+    }
+  }, [currentUser, showWarning, showError]);
+
+  // Funcție pentru renunțarea la un studio
+  const handleLeaveStudio = useCallback(async (studio: UserProfile) => {
+    if (!currentUser || !studio.uid) return;
+
+    try {
+      setSendingRequest(studio.uid);
+
+      // Actualizează studio-ul pentru a elimina utilizatorul din memberIds
+      const studioRef = doc(db, "studios", studio.uid);
+      const studioDoc = await getDoc(studioRef);
+
+      if (studioDoc.exists()) {
+        const studioData = studioDoc.data();
+        const memberIds = studioData.memberIds || [];
+
+        // Elimină utilizatorul curent din lista de membri
+        const updatedMemberIds = memberIds.filter((id: string) => id !== currentUser.id);
+
+        // Actualizează studio-ul
+        await updateDoc(studioRef, {
+          memberIds: updatedMemberIds,
+          updatedAt: serverTimestamp()
+        });
+
+        // Actualizează profilul utilizatorului pentru a elimina studioId
+        const userRef = doc(db, "users", currentUser.id);
+        await updateDoc(userRef, {
+          studioId: null,
+          updatedAt: serverTimestamp()
+        });
+
+        // Șterge cererea acceptată din connectionRequests pentru a preveni reapariția
+        const requestsRef = collection(db, "connectionRequests");
+        const studioJoinRequestsQuery = query(
+          requestsRef,
+          where("senderId", "==", currentUser.id),
+          where("receiverId", "==", studio.ownerId || studio.uid),
+          where("requestType", "==", "studio_join"),
+          where("status", "==", "accepted")
+        );
+
+        const requestsSnapshot = await getDocs(studioJoinRequestsQuery);
+        await Promise.all(
+          requestsSnapshot.docs.map((docSnapshot) =>
+            deleteDoc(doc(db, "connectionRequests", docSnapshot.id))
+          )
+        );
+
+        // Actualizează state-ul local - pentru studii șterge ownerId
+        setConnectedUsers((prev) => {
+          const newSet = new Set(prev);
+          // Pentru studii, șterge ownerId în loc de uid
+          if (studio.ownerId) {
+            newSet.delete(studio.ownerId);
+          } else {
+            newSet.delete(studio.uid);
+          }
+          return newSet;
+        });
+
+        showWarning(`Ai renunțat la studio-ul ${studio.displayName}.`);
+      }
+    } catch (error: any) {
+      console.error("Error leaving studio: ", error);
+      showError("Eroare la renunțarea la studio. Te rugăm să încerci din nou.");
+    } finally {
+      setSendingRequest(null);
+    }
+  }, [currentUser, showWarning, showError]);
+
   const filteredUsers = useMemo(() => users.filter((user) => {
     // Exclude current user from the list
     if (currentUser && user.uid === currentUser.id) {
@@ -298,7 +448,7 @@ function Community() {
           <div className="flex bg-gray-200 dark:bg-gray-700 rounded-lg p-1">
             <button
               onClick={() => setTypeFilter("")}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md font-medium transition-all ${genreFilter === ""
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md font-medium transition-all ${typeFilter === ""
                 ? "bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm"
                 : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                 }`}
@@ -308,7 +458,7 @@ function Community() {
             </button>
             <button
               onClick={() => setTypeFilter("studio")}
-              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md font-medium transition-all ${genreFilter === "studio"
+              className={`flex-1 flex items-center justify-center gap-2 py-3 px-4 rounded-md font-medium transition-all ${typeFilter === "studio"
                 ? "bg-white dark:bg-gray-800 text-indigo-600 dark:text-indigo-400 shadow-sm"
                 : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white"
                 }`}
@@ -322,8 +472,10 @@ function Community() {
         {/* Users Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredUsers.map((user) => {
-            const requestSent = sentRequests.has(user.uid);
-            const isConnected = connectedUsers.has(user.uid);
+            // Pentru studiouri, verifică ownerId în loc de uid
+            const checkId = user.accountType === "studio" && user.ownerId ? user.ownerId : user.uid;
+            const requestSent = sentRequests.has(checkId);
+            const isConnected = connectedUsers.has(checkId);
             const isSending = sendingRequest === user.uid;
 
             return (
@@ -458,23 +610,49 @@ function Community() {
                 {user.accountType === "studio" ? (
                   // Studio Join Button
                   isConnected ? (
-                    <button
-                      disabled
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-full bg-green-600 dark:bg-green-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 opacity-75 cursor-not-allowed"
-                    >
-                      <FiCheck />
-                      <span>Membru</span>
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        disabled
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 bg-green-600 dark:bg-green-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 opacity-75 cursor-not-allowed"
+                      >
+                        <FiCheck />
+                        <span>Membru</span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleLeaveStudio(user);
+                        }}
+                        disabled={isSending}
+                        className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/50 font-medium py-2 px-3 rounded-lg flex items-center justify-center gap-1 transition-colors"
+                        title="Renunță la studio"
+                      >
+                        <FiX />
+                      </button>
+                    </div>
                   ) : requestSent ? (
-                    <button
-                      disabled
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed"
-                    >
-                      <FiCheck />
-                      <span>Cerere trimisă</span>
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        disabled
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed"
+                      >
+                        <FiCheck />
+                        <span>Cerere trimisă</span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCancelRequest(user);
+                        }}
+                        disabled={isSending}
+                        className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/50 font-medium py-2 px-3 rounded-lg flex items-center justify-center gap-1 transition-colors"
+                        title="Anulează cererea"
+                      >
+                        <FiX />
+                      </button>
+                    </div>
                   ) : (
                     <button
                       onClick={(e) => {
@@ -509,14 +687,27 @@ function Community() {
                       <span>Conectat</span>
                     </button>
                   ) : requestSent ? (
-                    <button
-                      disabled
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed"
-                    >
-                      <FiCheck />
-                      <span>Cerere trimisă</span>
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        disabled
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed"
+                      >
+                        <FiCheck />
+                        <span>Cerere trimisă</span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCancelRequest(user);
+                        }}
+                        disabled={isSending}
+                        className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/50 font-medium py-2 px-3 rounded-lg flex items-center justify-center gap-1 transition-colors"
+                        title="Anulează cererea"
+                      >
+                        <FiX />
+                      </button>
+                    </div>
                   ) : (
                     <button
                       onClick={(e) => {

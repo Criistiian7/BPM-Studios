@@ -65,7 +65,6 @@ export async function createTrackFirestore(payload: CreateTrackPayload) {
         "statistics.tracksUploaded": increment(1),
         updatedAt: serverTimestamp(),
       });
-      console.log("✅ Statistics updated: tracksUploaded +1");
     } else {
       console.warn("⚠️ User document not found, statistics not updated");
     }

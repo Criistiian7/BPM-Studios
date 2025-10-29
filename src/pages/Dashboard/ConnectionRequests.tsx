@@ -9,6 +9,7 @@ import {
   doc,
   updateDoc,
   addDoc,
+  getDoc,
   serverTimestamp,
 } from "firebase/firestore";
 import { FiUserPlus, FiCheck, FiX, FiHome } from "react-icons/fi";
@@ -109,24 +110,55 @@ const ConnectionRequests: React.FC = () => {
         acceptedAt: serverTimestamp(),
       });
 
-      // Create connection in both directions
-      await addDoc(collection(db, "connections"), {
-        userId: user.id,
-        connectedUserId: request.senderId,
-        connectedUserName: request.senderName,
-        connectedUserAvatar: request.senderAvatar,
-        connectedUserAccountType: request.senderAccountType,
-        createdAt: serverTimestamp(),
-      });
+      // Handle studio join requests differently
+      if (request.requestType === "studio_join") {
 
-      await addDoc(collection(db, "connections"), {
-        userId: request.senderId,
-        connectedUserId: user.id,
-        connectedUserName: user.name,
-        connectedUserAvatar: user.avatar || null,
-        connectedUserAccountType: user.accountType,
-        createdAt: serverTimestamp(),
-      });
+        // Add artist to studio members
+        const studioRef = doc(db, "studios", request.studioId || "");
+        const studioDoc = await getDoc(studioRef);
+
+        if (studioDoc.exists()) {
+          const studioData = studioDoc.data();
+          const currentMembers = studioData.memberIds || [];
+
+
+          // Add sender to studio members if not already a member
+          if (!currentMembers.includes(request.senderId)) {
+            await updateDoc(studioRef, {
+              memberIds: [...currentMembers, request.senderId],
+              updatedAt: serverTimestamp(),
+            });
+
+          }
+
+          // Update sender's profile with studioId (commented out to allow multiple studio memberships)
+          // const senderRef = doc(db, "users", request.senderId);
+          // await updateDoc(senderRef, {
+          //   studioId: request.studioId,
+          //   updatedAt: serverTimestamp(),
+          // });
+
+        }
+      } else {
+        // Create connection in both directions for regular connections
+        await addDoc(collection(db, "connections"), {
+          userId: user.id,
+          connectedUserId: request.senderId,
+          connectedUserName: request.senderName,
+          connectedUserAvatar: request.senderAvatar,
+          connectedUserAccountType: request.senderAccountType,
+          createdAt: serverTimestamp(),
+        });
+
+        await addDoc(collection(db, "connections"), {
+          userId: request.senderId,
+          connectedUserId: user.id,
+          connectedUserName: user.name,
+          connectedUserAvatar: user.avatar || null,
+          connectedUserAccountType: user.accountType,
+          createdAt: serverTimestamp(),
+        });
+      }
 
       // Remove from local state
       setRequests((prev) => prev.filter((r) => r.id !== request.id));

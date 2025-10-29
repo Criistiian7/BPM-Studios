@@ -61,12 +61,12 @@ const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
   }
 
   return (
-    <div className="w-full max-w-md p-8 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/50 transition-all">
-      <div className="text-center mb-8">
-        <h2 className="text-3xl font-bold mb-2 bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-600 dark:from-purple-400 dark:via-pink-400 dark:to-indigo-400 bg-clip-text text-transparent">
+    <div className="w-full max-w-lg sm:max-w-md p-4 sm:p-6 lg:p-8 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/50 transition-all">
+      <div className="text-center mb-6 sm:mb-8">
+        <h2 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2 bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-600 dark:from-purple-400 dark:via-pink-400 dark:to-indigo-400 bg-clip-text text-transparent">
           Bine ai revenit!
         </h2>
-        <p className="text-gray-600 dark:text-gray-400 text-sm">
+        <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
           Conectează-te pentru a continua
         </p>
       </div>
@@ -82,7 +82,7 @@ const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor="email" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
             📧 Email
           </label>
           <input
@@ -93,14 +93,14 @@ const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
-            className="w-full px-4 py-3 border border-gray-300/50 dark:border-gray-600/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm"
+            className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm"
             placeholder="exemplu@email.com"
             aria-required="true"
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          <label htmlFor="password" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
             🔒 Parolă
           </label>
           <input
@@ -109,7 +109,7 @@ const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
             type="password"
             required
             autoComplete="current-password"
-            className="w-full px-4 py-3 border border-gray-300/50 dark:border-gray-600/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm"
+            className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm"
             placeholder="••••••••"
             aria-required="true"
           />
@@ -117,7 +117,7 @@ const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
 
         <button
           type="submit"
-          className="w-full bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-600 hover:from-purple-700 hover:via-pink-600 hover:to-indigo-700 text-white font-bold py-3.5 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900"
+          className="w-full bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-600 hover:from-purple-700 hover:via-pink-600 hover:to-indigo-700 text-white font-bold py-3 sm:py-3.5 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 text-sm sm:text-base"
           aria-label="Conectează-te la cont"
         >
           <span className="flex items-center justify-center gap-2">
@@ -127,8 +127,8 @@ const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
         </button>
       </form>
 
-      <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700/50">
-        <p className="text-sm text-center text-gray-600 dark:text-gray-400">
+      <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200 dark:border-gray-700/50">
+        <p className="text-xs sm:text-sm text-center text-gray-600 dark:text-gray-400">
           Nu ai cont?{" "}
           <button
             onClick={onSwitchToRegister}

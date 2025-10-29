@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { FiX, FiStar } from 'react-icons/fi';
 import { FaStar } from 'react-icons/fa';
 
+// Interfața pentru proprietățile componentei RatingModal
 interface RatingModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onSubmitRating: (rating: number) => Promise<void>;
-    trackTitle: string;
-    currentRating?: number;
+    isOpen: boolean;                    // Modal-ul este deschis sau nu
+    onClose: () => void;                // Funcția care se apelează când se închide modal-ul
+    onSubmitRating: (rating: number) => Promise<void>;  // Funcția care trimite rating-ul
+    trackTitle: string;                 // Titlul track-ului care se evaluează
+    currentRating?: number;             // Rating-ul actual (opțional)
 }
 
 const RatingModal: React.FC<RatingModalProps> = ({
@@ -17,68 +18,85 @@ const RatingModal: React.FC<RatingModalProps> = ({
     trackTitle,
     currentRating = 0,
 }) => {
+    // State-uri pentru gestionarea rating-ului
     const [selectedRating, setSelectedRating] = useState<number>(currentRating);
-    const [hoverRating, setHoverRating] = useState<number>(0);
-    const [submitting, setSubmitting] = useState(false);
+    const [hoverRating, setHoverRating] = useState<number>(0);  // Pentru efectul hover pe stele
+    const [submitting, setSubmitting] = useState(false);       // Pentru loading state
 
+    // Actualizează rating-ul selectat când se schimbă currentRating
     useEffect(() => {
         setSelectedRating(currentRating);
     }, [currentRating]);
 
+    // Dacă modal-ul nu este deschis, nu afișa nimic
     if (!isOpen) return null;
 
-  const handleSubmit = async () => {
-    if (selectedRating === 0) {
-      // Rating validation - could add visual feedback instead
-      return;
-    }
+    // Funcția care gestionează trimiterea rating-ului
+    const handleSubmit = async () => {
+        // Verifică dacă utilizatorul a selectat un rating
+        if (selectedRating === 0) {
+            console.warn('Utilizatorul nu a selectat un rating');
+            return;
+        }
 
         setSubmitting(true);
         try {
+            // Trimite rating-ul către componenta părinte
             await onSubmitRating(selectedRating);
+            // Închide modal-ul după trimiterea cu succes
             onClose();
         } catch (error) {
-            console.error('Error submitting rating:', error);
-            // Error will be handled by parent component through onSubmitRating
+            console.error('Eroare la trimiterea rating-ului:', error);
+            // Eroarea va fi gestionată de componenta părinte prin onSubmitRating
         } finally {
             setSubmitting(false);
         }
     };
 
+    // Funcția care gestionează click-ul pe o stea
     const handleStarClick = (rating: number) => {
         setSelectedRating(rating);
     };
 
+    // Funcția care gestionează hover-ul pe stele
     const handleStarHover = (rating: number) => {
         setHoverRating(rating);
     };
 
+    // Determină ce rating să afișeze (hover sau cel selectat)
     const displayRating = hoverRating || selectedRating;
 
     return (
+        // Overlay-ul modal-ului (fundal întunecat)
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            {/* Container-ul principal al modal-ului */}
             <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden animate-scale-in">
-                {/* Header */}
+
+                {/* Header-ul modal-ului cu gradient */}
                 <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6 relative">
+                    {/* Butonul de închidere */}
                     <button
                         onClick={onClose}
                         disabled={submitting}
                         className="absolute top-4 right-4 p-2 hover:bg-white/20 rounded-full transition-colors"
-                        aria-label="Close"
+                        aria-label="Închide modal-ul"
                     >
                         <FiX className="text-2xl text-white" />
                     </button>
+
+                    {/* Titlul modal-ului */}
                     <h2 className="text-2xl font-bold text-white mb-2">
-                        Rate this Song
+                        Evaluează Acest Track
                     </h2>
                     <p className="text-white/90 text-sm">
                         Ce părere ai despre acest track?
                     </p>
                 </div>
 
-                {/* Content */}
+                {/* Conținutul principal al modal-ului */}
                 <div className="p-6 space-y-6">
-                    {/* Track Title */}
+
+                    {/* Afișarea titlului track-ului */}
                     <div className="text-center">
                         <p className="text-gray-600 dark:text-gray-400 text-sm mb-2">
                             Evaluezi:
@@ -88,8 +106,9 @@ const RatingModal: React.FC<RatingModalProps> = ({
                         </h3>
                     </div>
 
-                    {/* Star Rating */}
+                    {/* Secțiunea pentru rating cu stele */}
                     <div className="flex flex-col items-center gap-4">
+                        {/* Container-ul pentru stele */}
                         <div className="flex gap-2">
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <button
@@ -99,7 +118,7 @@ const RatingModal: React.FC<RatingModalProps> = ({
                                     onMouseLeave={() => handleStarHover(0)}
                                     disabled={submitting}
                                     className="transition-all duration-200 hover:scale-110 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-                                    aria-label={`Rate ${star} star${star > 1 ? 's' : ''}`}
+                                    aria-label={`Evaluează cu ${star} stea${star > 1 ? 'e' : ''}`}
                                 >
                                     {star <= displayRating ? (
                                         <FaStar className="text-5xl text-yellow-400 drop-shadow-lg" />
@@ -110,7 +129,7 @@ const RatingModal: React.FC<RatingModalProps> = ({
                             ))}
                         </div>
 
-                        {/* Rating Text */}
+                        {/* Afișarea rating-ului selectat */}
                         <div className="text-center min-h-[2rem]">
                             {displayRating > 0 && (
                                 <div className="animate-fade-in">
@@ -129,7 +148,7 @@ const RatingModal: React.FC<RatingModalProps> = ({
                         </div>
                     </div>
 
-                    {/* Current Rating Info */}
+                    {/* Informații despre rating-ul actual */}
                     {currentRating > 0 && selectedRating !== currentRating && (
                         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 text-center">
                             <p className="text-sm text-blue-700 dark:text-blue-300">
@@ -138,8 +157,9 @@ const RatingModal: React.FC<RatingModalProps> = ({
                         </div>
                     )}
 
-                    {/* Action Buttons */}
+                    {/* Butoanele de acțiune */}
                     <div className="flex gap-3">
+                        {/* Butonul de anulare */}
                         <button
                             onClick={onClose}
                             disabled={submitting}
@@ -147,6 +167,8 @@ const RatingModal: React.FC<RatingModalProps> = ({
                         >
                             Anulează
                         </button>
+
+                        {/* Butonul de trimitere */}
                         <button
                             onClick={handleSubmit}
                             disabled={submitting || selectedRating === 0}
@@ -160,7 +182,7 @@ const RatingModal: React.FC<RatingModalProps> = ({
                             ) : (
                                 <>
                                     <FaStar className="text-yellow-300" />
-                                    <span>Rate this song!</span>
+                                    <span>Evaluează!</span>
                                 </>
                             )}
                         </button>
