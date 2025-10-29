@@ -1,0 +1,127 @@
+/* Optimizări specifice pentru mobile și high-DPI displays */
+
+/* Optimizare pentru touch targets */
+@media (max-width: 768px) {
+  button,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"] {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+
+  /* Optimizare pentru text pe mobile */
+  body {
+    font-size: 16px; /* Previne zoom-ul automat pe iOS */
+    line-height: 1.5;
+  }
+
+  /* Optimizare pentru imagini pe mobile */
+  img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
+  }
+
+  /* Optimizare pentru SVG-uri pe mobile */
+  svg {
+    shape-rendering: geometricPrecision;
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
+/* Optimizări pentru high-DPI displays (Retina, etc.) */
+@media (-webkit-min-device-pixel-ratio: 2),
+  (min-resolution: 192dpi),
+  (min-resolution: 2dppx) {
+  /* Font smoothing pentru text crisp */
+  * {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Optimizare pentru imagini high-DPI */
+  img {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+
+  /* Optimizare pentru SVG-uri high-DPI */
+  svg {
+    shape-rendering: geometricPrecision;
+  }
+}
+
+/* Optimizări pentru iOS Safari */
+@supports (-webkit-touch-callout: none) {
+  /* Previne zoom-ul automat pe iOS */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="tel"],
+  textarea,
+  select {
+    font-size: 16px;
+  }
+
+  /* Optimizare pentru scroll pe iOS */
+  body {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Optimizări pentru Android Chrome */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  /* Optimizare pentru font rendering pe Android */
+  * {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Optimizări pentru Firefox Mobile */
+@-moz-document url-prefix() {
+  /* Optimizare pentru Firefox Mobile */
+  img {
+    image-rendering: -moz-crisp-edges;
+  }
+}
+
+/* Optimizări pentru performanță pe mobile */
+@media (max-width: 768px) {
+  /* Animații foarte lente pe mobile pentru o experiență plăcută */
+  * {
+    animation-duration: 1.2s !important;
+    transition-duration: 0.8s !important;
+  }
+
+  /* Optimizare pentru transform-uri */
+  .transform {
+    will-change: transform;
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+}
+
+/* Optimizări pentru accesibilitate pe mobile */
+@media (max-width: 768px) {
+  /* Mărește contrastul pentru text */
+  .text-gray-600 {
+    color: #374151 !important;
+  }
+
+  .text-gray-500 {
+    color: #6b7280 !important;
+  }
+
+  /* Optimizare pentru focus states pe mobile */
+  button:focus,
+  input:focus,
+  textarea:focus,
+  select:focus {
+    outline: 2px solid #a855f7;
+    outline-offset: 2px;
+  }
+}

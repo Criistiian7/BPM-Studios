@@ -1,13 +1,26 @@
 import React, { ButtonHTMLAttributes, ReactNode } from "react";
 
+// Interfața pentru proprietățile componentei Button
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-    variant?: "primary" | "secondary" | "danger" | "success";
-    size?: "sm" | "md" | "lg";
-    isLoading?: boolean;
-    icon?: ReactNode;
-    children: ReactNode;
+    variant?: "primary" | "secondary" | "danger" | "success";  // Tipul de buton
+    size?: "sm" | "md" | "lg";                                 // Mărimea butonului
+    isLoading?: boolean;                                       // Dacă butonul este în starea de loading
+    icon?: ReactNode;                                          // Iconița opțională
+    children: ReactNode;                                        // Conținutul butonului
 }
 
+/**
+ * Componenta Button - un buton reutilizabil cu diferite stiluri și mărimi
+ * 
+ * @param variant - Tipul de buton (primary, secondary, danger, success)
+ * @param size - Mărimea butonului (sm, md, lg)
+ * @param isLoading - Dacă butonul afișează loading spinner
+ * @param icon - Iconița opțională
+ * @param children - Textul sau conținutul butonului
+ * @param className - Clase CSS suplimentare
+ * @param disabled - Dacă butonul este dezactivat
+ * @param props - Alte proprietăți HTML pentru buton
+ */
 export const Button: React.FC<ButtonProps> = ({
     variant = "primary",
     size = "md",
@@ -18,9 +31,11 @@ export const Button: React.FC<ButtonProps> = ({
     disabled,
     ...props
 }) => {
+    // Clasele de bază pentru toate butoanele
     const baseClasses =
         "rounded-lg font-medium transition-all focus:ring-2 focus:ring-offset-2 flex items-center justify-center gap-2";
 
+    // Clasele pentru diferite variante de culori
     const variantClasses = {
         primary:
             "bg-indigo-600 hover:bg-indigo-700 text-white focus:ring-indigo-500",
@@ -30,6 +45,7 @@ export const Button: React.FC<ButtonProps> = ({
         success: "bg-green-600 hover:bg-green-700 text-white focus:ring-green-500",
     };
 
+    // Clasele pentru diferite mărimi
     const sizeClasses = {
         sm: "px-3 py-1.5 text-sm",
         md: "px-6 py-3",
@@ -48,6 +64,7 @@ export const Button: React.FC<ButtonProps> = ({
             disabled={disabled || isLoading}
             {...props}
         >
+            {/* Afișează loading spinner dacă isLoading este true */}
             {isLoading ? (
                 <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
             ) : (

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { FiPlay, FiPause, FiVolume2, FiVolumeX, FiEdit2, FiTrash2, FiSkipBack, FiSkipForward, FiShuffle, FiRepeat, FiStar } from "react-icons/fi";
 import RatingModal from "./RatingModal";
 import { saveTrackRating, getUserTrackRating, isConnectedToTrackOwner } from "../firebase/ratings";
@@ -7,6 +7,7 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { slugify } from "../utils/slugify";
 import { useNavigate } from "react-router-dom";
 import { formatTime } from "../utils/formatters";
+import { useTrackAudio } from "../context/globalAudioContext";
 
 interface Collaborator {
     id: string;
@@ -58,7 +59,16 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     className = ""
 }) => {
     const navigate = useNavigate();
-    const [isPlaying, setIsPlaying] = useState(false);
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const volumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Folosește hook-ul pentru gestionarea audio-ului global
+    const { play, pause, isPlaying } = useTrackAudio(
+        trackId || '',
+        audioRef.current
+    );
+
+    // State-uri locale pentru controlul audio-ului
     const [currentTime, setCurrentTime] = useState(0);
     const [duration, setDuration] = useState(0);
     const [volume, setVolume] = useState(0.7);
@@ -66,8 +76,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const [showVolumeSlider, setShowVolumeSlider] = useState(false);
     const [isShuffleOn, setIsShuffleOn] = useState(false);
     const [repeatMode, setRepeatMode] = useState<'off' | 'one'>('off');
-    const audioRef = useRef<HTMLAudioElement>(null);
-    const volumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
     // Rating states
     const [showRatingModal, setShowRatingModal] = useState(false);
@@ -80,9 +88,9 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     const [loadingCollaborators, setLoadingCollaborators] = useState(false);
 
     // Memoize collaborators array to prevent unnecessary re-renders
-    const collaboratorsKey = useMemo(() => 
-        collaborators?.join(',') || '', 
-    [collaborators]);
+    const collaboratorsKey = useMemo(() =>
+        collaborators?.join(',') || '',
+        [collaborators]);
 
     // Fetch collaborators data with real-time updates
     useEffect(() => {
@@ -101,14 +109,14 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
         collaborators.forEach((collabId) => {
             try {
                 const userDocRef = doc(db, "users", collabId);
-                
+
                 const unsubscribe = onSnapshot(
                     userDocRef,
                     (docSnapshot) => {
                         if (docSnapshot.exists()) {
                             const userData = docSnapshot.data();
                             const userName = userData.name || userData.displayName || "Unknown";
-                            
+
                             tempCollaborators[collabId] = {
                                 id: collabId,
                                 name: userName,
@@ -200,7 +208,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
                 audio.currentTime = 0;
                 audio.play();
             } else {
-                setIsPlaying(false);
+                pause();
                 setCurrentTime(0);
             }
         };
@@ -230,16 +238,8 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
         setDuration(0);
 
         // Auto-play if autoPlay is true
-        if (autoPlay) {
-            audio.load();
-            const playPromise = audio.play();
-            if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    setIsPlaying(true);
-                }).catch(() => {
-                    setIsPlaying(false);
-                });
-            }
+        if (autoPlay && trackId) {
+            play();
         }
     }, [audioURL, autoPlay]);
 
@@ -248,11 +248,9 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
         if (!audio) return;
 
         if (isPlaying) {
-            audio.pause();
-            setIsPlaying(false);
+            pause();
         } else {
-            audio.play();
-            setIsPlaying(true);
+            play();
         }
     };
 
@@ -319,41 +317,66 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
         try {
             await saveTrackRating(trackId, currentUserId, currentUserName, uploadedById, rating);
             setCurrentRating(rating);
-            console.log(`✅ Rating saved: ${rating} stars`);
         } catch (error) {
             console.error("Error saving rating:", error);
             throw error;
         }
     };
 
-    const progress = useMemo(() => 
+    const progress = useMemo(() =>
         duration > 0 ? (currentTime / duration) * 100 : 0,
-    [currentTime, duration]);
+        [currentTime, duration]);
 
     return (
         <div className={`relative group ${className}`}>
-            <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-violet-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-6 backdrop-blur-sm rounded-2xl overflow-hidden">
-                {/* 3 Column Layout */}
-                <div className="flex items-center gap-6">
-                    {/* LEFT: Track Info */}
-                    <div className="flex-shrink-0 w-64">
+            <div className="bg-gradient-to-br from-slate-50 via-blue-50/30 to-violet-50/40 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-3 sm:p-4 lg:p-6 backdrop-blur-sm rounded-xl sm:rounded-2xl overflow-hidden">
+                {/* Butoanele de Edit și Delete - Poziționate în colțul din dreapta sus */}
+                {(onEdit || onDelete) && (
+                    <div className="absolute top-2 sm:top-3 right-2 sm:right-3 flex gap-1 sm:gap-2 z-10">
+                        {onEdit && (
+                            <button
+                                onClick={onEdit}
+                                className="p-1.5 sm:p-2 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-white/80 dark:hover:bg-gray-800/80 rounded-lg sm:rounded-xl transition-all duration-200 hover:scale-110 backdrop-blur-sm shadow-sm hover:shadow-md"
+                                title="Edit Track"
+                                aria-label="Edit Track"
+                            >
+                                <FiEdit2 className="text-sm sm:text-base" />
+                            </button>
+                        )}
+                        {onDelete && (
+                            <button
+                                onClick={onDelete}
+                                className="p-1.5 sm:p-2 text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-white/80 dark:hover:bg-gray-800/80 rounded-lg sm:rounded-xl transition-all duration-200 hover:scale-110 backdrop-blur-sm shadow-sm hover:shadow-md"
+                                title="Delete Track"
+                                aria-label="Delete Track"
+                            >
+                                <FiTrash2 className="text-sm sm:text-base" />
+                            </button>
+                        )}
+                    </div>
+                )}
+
+                {/* Responsive Layout - Stack pe mobile, flex pe desktop */}
+                <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 lg:gap-6">
+                    {/* LEFT: Track Info - Responsive sizing */}
+                    <div className="flex-shrink-0 w-full sm:w-64">
                         {title && (
-                            <div className="space-y-2">
-                                <h4 className="font-bold text-lg text-slate-800 dark:text-slate-100 truncate">
+                            <div className="space-y-1 sm:space-y-2">
+                                <h4 className="font-bold text-base sm:text-lg text-slate-800 dark:text-slate-100 truncate">
                                     {title}
                                 </h4>
-                                <div className="flex gap-2 flex-wrap">
+                                <div className="flex gap-1 sm:gap-2 flex-wrap">
                                     {genre && (
-                                        <span className="text-xs px-2.5 py-1 bg-gradient-to-r from-blue-500/10 to-violet-500/10 dark:from-blue-500/20 dark:to-violet-500/20 text-blue-700 dark:text-blue-300 rounded-full font-semibold border border-blue-200/50 dark:border-blue-500/30">
+                                        <span className="text-xs px-2 sm:px-2.5 py-0.5 sm:py-1 bg-gradient-to-r from-blue-500/10 to-violet-500/10 dark:from-blue-500/20 dark:to-violet-500/20 text-blue-700 dark:text-blue-300 rounded-full font-semibold border border-blue-200/50 dark:border-blue-500/30">
                                             {genre}
                                         </span>
                                     )}
                                     {status && (
-                                        <span className={`text-xs px-2.5 py-1 rounded-full font-semibold ${status === "Work in Progress"
-                                                ? "bg-gradient-to-r from-yellow-500/10 to-amber-500/10 dark:from-yellow-500/20 dark:to-amber-500/20 text-yellow-700 dark:text-yellow-300 border border-yellow-200/50 dark:border-yellow-500/30"
-                                                : status === "Pre-Release"
-                                                    ? "bg-gradient-to-r from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-500/30"
-                                                    : "bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/20 dark:to-teal-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-500/30"
+                                        <span className={`text-xs px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full font-semibold ${status === "Work in Progress"
+                                            ? "bg-gradient-to-r from-yellow-500/10 to-amber-500/10 dark:from-yellow-500/20 dark:to-amber-500/20 text-yellow-700 dark:text-yellow-300 border border-yellow-200/50 dark:border-yellow-500/30"
+                                            : status === "Pre-Release"
+                                                ? "bg-gradient-to-r from-purple-500/10 to-violet-500/10 dark:from-purple-500/20 dark:to-violet-500/20 text-purple-700 dark:text-purple-300 border border-purple-200/50 dark:border-purple-500/30"
+                                                : "bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/20 dark:to-teal-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-200/50 dark:border-emerald-500/30"
                                             }`}>
                                             {status}
                                         </span>
@@ -414,40 +437,39 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
                         )}
                     </div>
 
-                    {/* CENTER: Player Controls */}
-                    <div className="flex-1 min-w-0">
-                        <div className="space-y-3">
-                            {/* Main Controls Row */}
-                            <div className="flex items-center justify-center gap-3">
-                                {/* Shuffle Button */}
+                    {/* CENTER: Player Controls - Responsive layout */}
+                    <div className="flex-1 min-w-0 w-full">
+                        <div className="space-y-2 sm:space-y-3">
+                            {/* Main Controls Row - Responsive spacing */}
+                            <div className="flex items-center justify-center gap-2 sm:gap-3">
+                                {/* Shuffle Button - Responsive sizing */}
                                 <button
                                     onClick={() => setIsShuffleOn(!isShuffleOn)}
-                                    className={`p-2 rounded-lg transition-all duration-200 ${isShuffleOn
+                                    className={`p-1.5 sm:p-2 rounded-lg transition-all duration-200 ${isShuffleOn
                                         ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10'
                                         : 'text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10'
                                         }`}
                                     aria-label="Shuffle"
                                     title="Shuffle"
                                 >
-                                    <FiShuffle className="text-lg" />
+                                    <FiShuffle className="text-base sm:text-lg" />
                                 </button>
 
-                                {/* Previous Button */}
+                                {/* Previous Button - Responsive sizing */}
                                 <button
                                     onClick={() => {
                                         if (hasPrevious && onPrevious) {
                                             const wasPlaying = isPlaying;
                                             // Pause current track
-                                            if (audioRef.current && isPlaying) {
-                                                audioRef.current.pause();
-                                                setIsPlaying(false);
+                                            if (isPlaying) {
+                                                pause();
                                             }
                                             // Navigate to previous and pass playing state
                                             onPrevious(wasPlaying);
                                         }
                                     }}
                                     disabled={!hasPrevious}
-                                    className={`p-2.5 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all duration-200 hover:scale-110 ${!hasPrevious ? 'opacity-40 cursor-not-allowed hover:scale-100 hover:text-slate-600 dark:hover:text-slate-400 hover:bg-transparent' : ''
+                                    className={`p-2 sm:p-2.5 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all duration-200 hover:scale-110 ${!hasPrevious ? 'opacity-40 cursor-not-allowed hover:scale-100 hover:text-slate-600 dark:hover:text-slate-400 hover:bg-transparent' : ''
                                         }`}
                                     aria-label="Previous"
                                     title={hasPrevious ? "Previous Track" : "No previous track"}
@@ -455,53 +477,52 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
                                     <FiSkipBack className="text-xl" />
                                 </button>
 
-                                {/* Play/Pause Button */}
+                                {/* Play/Pause Button - Responsive sizing */}
                                 <button
                                     onClick={togglePlay}
-                                    className="flex-shrink-0 w-12 h-12 flex items-center justify-center bg-gradient-to-br from-blue-500 via-blue-600 to-violet-600 hover:from-blue-600 hover:via-blue-700 hover:to-violet-700 text-white rounded-full shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300 hover:scale-110 active:scale-95"
+                                    className="flex-shrink-0 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-gradient-to-br from-blue-500 via-blue-600 to-violet-600 hover:from-blue-600 hover:via-blue-700 hover:to-violet-700 text-white rounded-full shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 transition-all duration-300 hover:scale-110 active:scale-95"
                                     aria-label={isPlaying ? "Pause" : "Play"}
                                 >
                                     {isPlaying ? (
-                                        <FiPause className="text-xl" />
+                                        <FiPause className="text-lg sm:text-xl" />
                                     ) : (
-                                        <FiPlay className="text-xl ml-0.5" />
+                                        <FiPlay className="text-lg sm:text-xl ml-0.5" />
                                     )}
                                 </button>
 
-                                {/* Next Button */}
+                                {/* Next Button - Responsive sizing */}
                                 <button
                                     onClick={() => {
                                         if (hasNext && onNext) {
                                             const wasPlaying = isPlaying;
                                             // Pause current track
-                                            if (audioRef.current && isPlaying) {
-                                                audioRef.current.pause();
-                                                setIsPlaying(false);
+                                            if (isPlaying) {
+                                                pause();
                                             }
                                             // Navigate to next and pass playing state
                                             onNext(wasPlaying);
                                         }
                                     }}
                                     disabled={!hasNext}
-                                    className={`p-2.5 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all duration-200 hover:scale-110 ${!hasNext ? 'opacity-40 cursor-not-allowed hover:scale-100 hover:text-slate-600 dark:hover:text-slate-400 hover:bg-transparent' : ''
+                                    className={`p-2 sm:p-2.5 text-slate-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all duration-200 hover:scale-110 ${!hasNext ? 'opacity-40 cursor-not-allowed hover:scale-100 hover:text-slate-600 dark:hover:text-slate-400 hover:bg-transparent' : ''
                                         }`}
                                     aria-label="Next"
                                     title={hasNext ? "Next Track" : "No next track"}
                                 >
-                                    <FiSkipForward className="text-xl" />
+                                    <FiSkipForward className="text-lg sm:text-xl" />
                                 </button>
 
-                                {/* Repeat Button */}
+                                {/* Repeat Button - Responsive sizing */}
                                 <button
                                     onClick={toggleRepeat}
-                                    className={`p-2 rounded-lg transition-all duration-200 relative ${repeatMode !== 'off'
+                                    className={`p-1.5 sm:p-2 rounded-lg transition-all duration-200 relative ${repeatMode !== 'off'
                                         ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10'
                                         : 'text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10'
                                         }`}
                                     aria-label={`Repeat: ${repeatMode}`}
                                     title={repeatMode === 'off' ? 'Repeat Off' : 'Repeat One'}
                                 >
-                                    <FiRepeat className="text-lg" />
+                                    <FiRepeat className="text-base sm:text-lg" />
                                     {repeatMode === 'one' && (
                                         <span className="absolute -top-0.5 -right-0.5 w-3 h-3 bg-blue-600 dark:bg-blue-400 text-white dark:text-slate-900 text-[8px] font-bold rounded-full flex items-center justify-center">
                                             1
@@ -591,32 +612,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
                     </div>
 
                     {/* RIGHT: Action Buttons */}
-                    <div className="flex-shrink-0">
-                        {(onEdit || onDelete) && (
-                            <div className="flex flex-col gap-2">
-                                {onEdit && (
-                                    <button
-                                        onClick={onEdit}
-                                        className="p-2.5 text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-xl transition-all duration-200 hover:scale-105"
-                                        title="Edit Track"
-                                        aria-label="Edit Track"
-                                    >
-                                        <FiEdit2 className="text-lg" />
-                                    </button>
-                                )}
-                                {onDelete && (
-                                    <button
-                                        onClick={onDelete}
-                                        className="p-2.5 text-slate-400 dark:text-slate-500 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-all duration-200 hover:scale-105"
-                                        title="Delete Track"
-                                        aria-label="Delete Track"
-                                    >
-                                        <FiTrash2 className="text-lg" />
-                                    </button>
-                                )}
-                            </div>
-                        )}
-                    </div>
                 </div>
 
                 {/* Hidden Audio Element */}

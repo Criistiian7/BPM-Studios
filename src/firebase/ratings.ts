@@ -159,9 +159,6 @@ export async function updateUserProfileRating(userId: string): Promise<void> {
     updatedAt: serverTimestamp(),
   });
 
-  console.log(
-    `✅ Profile rating updated for user ${userId}: ${profileRating.toFixed(2)}`
-  );
 }
 
 /**
@@ -178,7 +175,6 @@ export async function updateStudioRatingsForOwner(
     const studiosSnapshot = await getDocs(studiosQuery);
 
     if (studiosSnapshot.empty) {
-      console.log(`No studios found for owner ${ownerId}`);
       return;
     }
 
@@ -200,9 +196,6 @@ export async function updateStudioRatingsForOwner(
         rating: parseFloat(ownerRating.toFixed(2)),
         updatedAt: serverTimestamp(),
       });
-      console.log(
-        `✅ Studio ${studioDoc.id} rating updated to ${ownerRating.toFixed(2)}`
-      );
     });
 
     await Promise.all(updatePromises);
@@ -314,18 +307,15 @@ export function subscribeToUserProfileRating(
  */
 export async function syncAllStudioRatings(): Promise<void> {
   try {
-    console.log("🔄 Starting studio ratings synchronization...");
 
     // Obține toate studio-urile
     const studiosRef = collection(db, "studios");
     const studiosSnapshot = await getDocs(studiosRef);
 
     if (studiosSnapshot.empty) {
-      console.log("No studios found to sync");
       return;
     }
 
-    console.log(`Found ${studiosSnapshot.size} studios to sync`);
     let successCount = 0;
     let errorCount = 0;
 
@@ -360,11 +350,6 @@ export async function syncAllStudioRatings(): Promise<void> {
           updatedAt: serverTimestamp(),
         });
 
-        console.log(
-          `✅ Studio "${studioData.name}" (${
-            studioDoc.id
-          }) → rating: ${ownerRating.toFixed(2)}`
-        );
         successCount++;
       } catch (error) {
         console.error(`Error syncing studio ${studioDoc.id}:`, error);
@@ -372,9 +357,6 @@ export async function syncAllStudioRatings(): Promise<void> {
       }
     }
 
-    console.log(
-      `🎉 Sync complete! Success: ${successCount}, Errors: ${errorCount}`
-    );
   } catch (error) {
     console.error("Error in syncAllStudioRatings:", error);
     throw error;

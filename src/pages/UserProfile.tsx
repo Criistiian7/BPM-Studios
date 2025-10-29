@@ -434,11 +434,9 @@ const UserProfile: React.FC = () => {
                         }}
                         onEdit={currentUser && currentUser.id === profile?.uid ? () => {
                           // TODO: Implementează logica de editare
-                          console.log("Edit track:", track.id);
                         } : undefined}
                         onDelete={currentUser && currentUser.id === profile?.uid ? () => {
                           // TODO: Implementează logica de ștergere
-                          console.log("Delete track:", track.id);
                         } : undefined}
                         onNext={(wasPlaying) => handleNext(index, wasPlaying)}
                         onPrevious={(wasPlaying) => handlePrevious(index, wasPlaying)}

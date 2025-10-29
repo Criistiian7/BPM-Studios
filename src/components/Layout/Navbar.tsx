@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/authContext";
-import { FiHome, FiUser, FiUsers, FiMic, FiSun, FiMoon, FiSettings, FiLogOut } from "react-icons/fi";
+import { FiUser, FiUsers, FiMic, FiSun, FiMoon, FiSettings, FiLogOut, FiMenu, FiX } from "react-icons/fi";
 import { getInitials } from "../../utils/formatters";
 
 const Navbar: React.FC = () => {
@@ -10,6 +10,7 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown when clicking outside
@@ -23,6 +24,11 @@ const Navbar: React.FC = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Close mobile menu when route changes or when user logs out
+  useEffect(() => {
+    closeMobileMenu();
+  }, [location.pathname, user]);
 
   // Load theme preference from localStorage and apply immediately
   useEffect(() => {
@@ -45,21 +51,26 @@ const Navbar: React.FC = () => {
     // Calculate new mode
     const newMode = !isDarkMode;
 
-    console.log("Toggling theme from", isDarkMode, "to", newMode);
 
     // Apply to DOM immediately (sync)
     if (newMode) {
       document.documentElement.classList.add("dark");
       localStorage.setItem("theme", "dark");
-      console.log("Applied dark mode");
     } else {
       document.documentElement.classList.remove("dark");
       localStorage.setItem("theme", "light");
-      console.log("Applied light mode");
     }
 
     // Update state last
     setIsDarkMode(newMode);
+  };
+
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
   };
 
   const handleLogout = async () => {
@@ -80,29 +91,25 @@ const Navbar: React.FC = () => {
 
   return (
     <nav className="bg-white dark:bg-slate-900 border-b border-gray-200 dark:border-gray-800 transition-colors">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-3">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8">
+        <div className="flex justify-between items-center h-14 sm:h-16">
+          {/* Logo - Responsive sizing, clickable pentru a naviga către Home */}
+          <Link to="/home" className="flex items-center gap-2 sm:gap-3 hover:opacity-80 transition-opacity">
             <img
               src="/logo.svg"
               alt="BeatPlanner"
-              className="w-10 h-10"
+              className="w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10"
             />
-            <span className="text-xl font-bold text-primary-600 dark:text-primary-400">
+            <span className="text-lg sm:text-xl font-bold text-primary-600 dark:text-primary-400">
               BeatPlanner
             </span>
           </Link>
 
-          {/* Navigation Links */}
-          <div className="hidden md:flex items-center space-x-2">
+          {/* Navigation Links - Ascunse pe mobile, fără Home după logare */}
+          <div className="hidden lg:flex items-center space-x-2">
 
             {user && (
               <>
-                <Link to="/" className={navLinkClass("/")}>
-                  <FiHome className="text-lg" />
-                  <span>Home</span>
-                </Link>
                 <Link to="/profile" className={navLinkClass("/profile")}>
                   <FiUser className="text-lg" />
                   <span>Profil</span>
@@ -113,54 +120,78 @@ const Navbar: React.FC = () => {
                   <span>Comunitate</span>
                 </Link>
 
+                {/* Butonul Studio - vizibil doar pentru producători */}
                 {user.accountType === "producer" && (
                   <Link to="/studio" className={navLinkClass("/studio")}>
                     <FiMic className="text-lg" />
                     <span>Studio</span>
                   </Link>
                 )}
+
+                {/* Butonul Studiouri - vizibil doar pentru artiști */}
+                {(user.accountType === "artist" || user.accountType === "Artist") && (
+                  <Link to="/artist-studios" className={navLinkClass("/artist-studios")}>
+                    <FiMic className="text-lg" />
+                    <span>Studiouri</span>
+                  </Link>
+                )}
               </>
             )}
           </div>
 
-          {/* Right Side - Theme Toggle & User Menu */}
-          <div className="flex items-center gap-3">
-            {/* Theme Toggle Button */}
+          {/* Right Side - Theme Toggle, Mobile Menu & User Menu */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Theme Toggle Button - Responsive sizing */}
             <button
               onClick={toggleTheme}
-              className="p-2.5 rounded-full bg-yellow-100 dark:bg-slate-800 text-yellow-600 dark:text-blue-400 hover:bg-yellow-200 dark:hover:bg-slate-700 transition-all shadow-sm"
+              className="p-2 sm:p-2.5 rounded-full bg-yellow-100 dark:bg-slate-800 text-yellow-600 dark:text-blue-400 hover:bg-yellow-200 dark:hover:bg-slate-700 transition-all shadow-sm"
               aria-label="Toggle theme"
             >
               {isDarkMode ? (
-                <FiSun className="text-xl" />
+                <FiSun className="text-lg sm:text-xl" />
               ) : (
-                <FiMoon className="text-xl" />
+                <FiMoon className="text-lg sm:text-xl" />
               )}
             </button>
 
+            {/* Mobile Menu Button - Vizibil doar pe mobile și când utilizatorul este logat */}
+            {user && (
+              <button
+                onClick={toggleMobileMenu}
+                className="lg:hidden p-2 rounded-lg bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all touch-manipulation"
+                aria-label="Toggle mobile menu"
+              >
+                {isMobileMenuOpen ? (
+                  <FiX className="text-xl" />
+                ) : (
+                  <FiMenu className="text-xl" />
+                )}
+              </button>
+            )}
+
             {user ? (
               <div className="relative" ref={dropdownRef}>
-                {/* Avatar Button */}
+                {/* Avatar Button - Responsive sizing */}
                 <button
                   onClick={() => setShowDropdown(!showDropdown)}
-                  className="flex items-center gap-2 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="flex items-center gap-1 sm:gap-2 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                 >
                   {user.avatar ? (
                     <img
                       src={user.avatar}
                       alt={user.name}
-                      className="w-10 h-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
                     />
                   ) : (
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm sm:text-base">
                       {getInitials(user.name)}
                     </div>
                   )}
                 </button>
 
-                {/* Dropdown Menu */}
+                {/* Dropdown Menu - Responsive sizing */}
                 {showDropdown && (
-                  <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
+                  <div className="absolute right-0 mt-2 w-56 sm:w-64 bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-2 z-50">
                     {/* User Info Header */}
                     <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                       <p className="text-sm font-semibold text-gray-900 dark:text-white">
@@ -207,8 +238,8 @@ const Navbar: React.FC = () => {
               </div>
             ) : (
               <Link
-                to="/auth"
-                className="px-5 py-2.5 bg-primary-500 text-white rounded-xl hover:bg-primary-600 transition-all font-medium shadow-lg shadow-primary-500/30"
+                to="/login"
+                className="px-3 sm:px-4 lg:px-5 py-2 sm:py-2.5 bg-primary-500 text-white rounded-lg sm:rounded-xl hover:bg-primary-600 transition-all font-medium shadow-lg shadow-primary-500/30 text-xs sm:text-sm lg:text-base"
               >
                 Login
               </Link>
@@ -216,34 +247,71 @@ const Navbar: React.FC = () => {
           </div>
         </div>
 
-        {/* Mobile Navigation */}
-        <div className="md:hidden pb-3 flex gap-2 overflow-x-auto">
-          <Link to="/" className={navLinkClass("/") + " text-sm"}>
-            <FiHome />
-            <span>Home</span>
-          </Link>
+        {/* Mobile Menu - Modern collapse design cu animații smooth - doar pentru utilizatori logați */}
+        {user && (
+          <div className={`lg:hidden transition-all duration-1000 ease-in-out overflow-hidden ${isMobileMenuOpen ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+            }`}>
+            <div className="py-4 border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-900 backdrop-blur-sm">
+              <div className="flex flex-col space-y-1 px-2">
+                <>
+                  <Link
+                    to="/profile"
+                    onClick={closeMobileMenu}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-500 transform hover:scale-105 touch-manipulation ${location.pathname === "/profile"
+                      ? "bg-primary-500 text-white shadow-lg shadow-primary-500/30"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:shadow-md"
+                      }`}
+                  >
+                    <FiUser className="text-lg" />
+                    <span className="font-medium">Profil</span>
+                  </Link>
 
-          {user && (
-            <>
-              <Link to="/profile" className={navLinkClass("/profile") + " text-sm"}>
-                <FiUser />
-                <span>Profil</span>
-              </Link>
+                  <Link
+                    to="/community"
+                    onClick={closeMobileMenu}
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-500 transform hover:scale-105 touch-manipulation ${location.pathname === "/community"
+                      ? "bg-primary-500 text-white shadow-lg shadow-primary-500/30"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:shadow-md"
+                      }`}
+                  >
+                    <FiUsers className="text-lg" />
+                    <span className="font-medium">Comunitate</span>
+                  </Link>
 
-              <Link to="/community" className={navLinkClass("/community") + " text-sm"}>
-                <FiUsers />
-                <span>Comunitate</span>
-              </Link>
+                  {/* Butonul Studio - vizibil doar pentru producători */}
+                  {user.accountType === "producer" && (
+                    <Link
+                      to="/studio"
+                      onClick={closeMobileMenu}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-500 transform hover:scale-105 touch-manipulation ${location.pathname === "/studio"
+                        ? "bg-primary-500 text-white shadow-lg shadow-primary-500/30"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:shadow-md"
+                        }`}
+                    >
+                      <FiMic className="text-lg" />
+                      <span className="font-medium">Studio</span>
+                    </Link>
+                  )}
 
-              {user.accountType === "producer" && (
-                <Link to="/studio" className={navLinkClass("/studio") + " text-sm"}>
-                  <FiMic />
-                  <span>Studio</span>
-                </Link>
-              )}
-            </>
-          )}
-        </div>
+                  {/* Butonul Studiouri - vizibil doar pentru artiști */}
+                  {(user.accountType === "artist" || user.accountType === "Artist") && (
+                    <Link
+                      to="/artist-studios"
+                      onClick={closeMobileMenu}
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-500 transform hover:scale-105 touch-manipulation ${location.pathname === "/artist-studios"
+                        ? "bg-primary-500 text-white shadow-lg shadow-primary-500/30"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:shadow-md"
+                        }`}
+                    >
+                      <FiMic className="text-lg" />
+                      <span className="font-medium">Studiouri</span>
+                    </Link>
+                  )}
+                </>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </nav>
   );

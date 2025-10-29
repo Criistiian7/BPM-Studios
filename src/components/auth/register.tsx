@@ -6,9 +6,8 @@ import type { AccountType } from "../../types/user";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import { auth } from "../../firebase";
-import { FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
 
-type Props = { 
+type Props = {
   onSwitchToLogin: () => void;
 };
 
@@ -37,11 +36,6 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
       password: "",
       confirmPassword: "",
       accountType: "artist" as AccountType,
-      location: "",
-      phoneNumber: "",
-      facebook: "",
-      instagram: "",
-      youtube: "",
     };
   };
 
@@ -65,8 +59,8 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
   };
 
   const validateForm = (): string | null => {
-    if (!formData.firstName.trim()) return "Te rugăm sa introduci numele.";
-    if (!formData.lastName.trim()) return "Te rugăm sa introduci numele de familie.";
+    if (!formData.firstName.trim()) return "Te rugăm să introduci prenumele.";
+    if (!formData.lastName.trim()) return "Te rugăm să introduci numele de familie.";
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(formData.email)) return "Adresa de email nu este validă.";
@@ -77,9 +71,6 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
       return "Parola trebuie să conțină cel puțin un caracter special (!, @, #, $, etc.)";
 
     if (formData.password !== formData.confirmPassword) return "Parolele nu se potrivesc.";
-
-    if (formData.phoneNumber && !/^[0-9+\-\s()]+$/.test(formData.phoneNumber))
-      return "Numărul de telefon nu este valid.";
 
     return null;
   };
@@ -129,12 +120,12 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
             rating: 0,
             description: "",
             genre: "",
-            location: formData.location.trim(),
-            phoneNumber: formData.phoneNumber.trim() || null,
+            location: "",
+            phoneNumber: null,
             socialLinks: {
-              facebook: formData.facebook.trim() || null,
-              instagram: formData.instagram.trim() || null,
-              youtube: formData.youtube.trim() || null,
+              facebook: null,
+              instagram: null,
+              youtube: null,
             },
             statistics: { tracksUploaded: 0, projectsCompleted: 0 },
             memberSince: new Date().toISOString(),
@@ -179,12 +170,12 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
   };
 
   return (
-    <div className="w-full max-w-2xl p-6 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/50 transition-all max-h-[92vh] overflow-y-auto custom-scrollbar">
+    <div className="w-full max-w-lg sm:max-w-2xl p-4 sm:p-6 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl rounded-xl sm:rounded-2xl shadow-2xl border border-white/20 dark:border-gray-700/50 transition-all max-h-[90vh] sm:max-h-[92vh] overflow-y-auto custom-scrollbar">
       <div className="text-center mb-4">
-        <h2 className="text-2xl font-bold mb-1 bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-600 dark:from-purple-400 dark:via-pink-400 dark:to-indigo-400 bg-clip-text text-transparent">
+        <h2 className="text-xl sm:text-2xl font-bold mb-1 bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-600 dark:from-purple-400 dark:via-pink-400 dark:to-indigo-400 bg-clip-text text-transparent">
           Creează cont gratuit
         </h2>
-        <p className="text-gray-600 dark:text-gray-400 text-xs">
+        <p className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">
           Alătură-te comunității BeatPlanner
         </p>
       </div>
@@ -198,11 +189,11 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-3">
-        {/* Nume și Prenume */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+      <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
+        {/* Nume și Prenume - Responsive grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
-            <label htmlFor="firstName" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="firstName" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
               👤 Prenume <span className="text-pink-500">*</span>
             </label>
             <input
@@ -212,13 +203,13 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
               required
               value={formData.firstName}
               onChange={handleChange}
-              className="w-full px-3 py-2 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm"
+              className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm"
               placeholder="Ion"
             />
           </div>
 
           <div>
-            <label htmlFor="lastName" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="lastName" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
               👤 Nume <span className="text-pink-500">*</span>
             </label>
             <input
@@ -228,7 +219,7 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
               required
               value={formData.lastName}
               onChange={handleChange}
-              className="w-full px-3 py-2 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm"
+              className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm"
               placeholder="Popescu"
             />
           </div>
@@ -236,7 +227,7 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
 
         {/* Email */}
         <div>
-          <label htmlFor="register-email" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label htmlFor="register-email" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
             📧 Email <span className="text-pink-500">*</span>
           </label>
           <input
@@ -247,15 +238,15 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
             value={formData.email}
             onChange={handleChange}
             autoComplete="email"
-            className="w-full px-3 py-2 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm"
+            className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm"
             placeholder="exemplu@email.com"
           />
         </div>
 
-        {/* Parola și Confirmare */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {/* Parola și Confirmare - Responsive grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div>
-            <label htmlFor="register-password" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="register-password" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
               🔒 Parolă <span className="text-pink-500">*</span>
             </label>
             <input
@@ -266,13 +257,13 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
               value={formData.password}
               onChange={handleChange}
               autoComplete="new-password"
-              className="w-full px-3 py-2 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm"
+              className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm"
               placeholder="••••••••"
             />
           </div>
 
           <div>
-            <label htmlFor="confirmPassword" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
+            <label htmlFor="confirmPassword" className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1 sm:mb-2">
               🔒 Confirmă <span className="text-pink-500">*</span>
             </label>
             <input
@@ -283,134 +274,57 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
               value={formData.confirmPassword}
               onChange={handleChange}
               autoComplete="new-password"
-              className="w-full px-3 py-2 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm"
+              className="w-full px-3 py-2.5 sm:px-4 sm:py-3 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-lg sm:rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm"
               placeholder="••••••••"
             />
           </div>
         </div>
-        <p className="text-[12px] text-gray-600 dark:text-gray-400 -mt-1 bg-purple-50 dark:bg-purple-900/20 px-2 py-1 rounded-lg">
+
+        <p className="text-sm text-gray-600 dark:text-gray-400 bg-purple-50 dark:bg-purple-900/20 px-3 py-2 rounded-lg">
           💡 Min. 6 caractere și un caracter special (!, @, #, $, etc.)
         </p>
 
-        {/* Tip cont și Locație - în aceeași linie */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="accountType" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-              🎭 Tip cont <span className="text-pink-500">*</span>
-            </label>
-            <div className="relative">
-              <select
-                id="accountType"
-                name="accountType"
-                value={formData.accountType}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm appearance-none cursor-pointer pr-10 font-medium hover:border-purple-400 dark:hover:border-pink-400"
-                style={{
-                  backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23a855f7' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
-                  backgroundPosition: 'right 0.5rem center',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundSize: '1.5em 1.5em',
-                }}
-              >
-                <option value="artist" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2">🎤 Artist</option>
-                <option value="producer" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2">🎧 Producător</option>
-              </select>
-              <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-                <svg className="w-4 h-4 text-purple-500 dark:text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label htmlFor="location" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-              📍 Locație
-            </label>
-            <input
-              id="location"
-              name="location"
-              type="text"
-              value={formData.location}
-              onChange={handleChange}
-              className="w-full px-3 py-2 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm"
-              placeholder="București, România"
-            />
-          </div>
-        </div>
-
-        {/* Telefon */}
+        {/* Tip cont */}
         <div>
-          <label htmlFor="phoneNumber" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">
-            📱 Telefon
+          <label htmlFor="accountType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            🎭 Tip cont <span className="text-pink-500">*</span>
           </label>
-          <input
-            id="phoneNumber"
-            name="phoneNumber"
-            type="tel"
-            value={formData.phoneNumber}
-            onChange={handleChange}
-            className="w-full px-3 py-2 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm"
-            placeholder="+40 123 456 789"
-          />
+          <div className="relative">
+            <select
+              id="accountType"
+              name="accountType"
+              value={formData.accountType}
+              onChange={handleChange}
+              className="w-full px-4 py-3 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-purple-500 dark:focus:ring-pink-500 focus:border-transparent transition-all shadow-sm appearance-none cursor-pointer pr-10 font-medium hover:border-purple-400 dark:hover:border-pink-400"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23a855f7' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
+                backgroundPosition: 'right 0.5rem center',
+                backgroundRepeat: 'no-repeat',
+                backgroundSize: '1.5em 1.5em',
+              }}
+            >
+              <option value="artist" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2">🎤 Artist</option>
+              <option value="producer" className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white py-2">🎧 Producător</option>
+            </select>
+            <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+              <svg className="w-4 h-4 text-purple-500 dark:text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+          </div>
         </div>
 
-        {/* Social Media Links - Compact */}
-        <div className="border-t border-gray-200/50 dark:border-gray-700/50 pt-3">
-          <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-1.5">
-            <span>🔗</span>
-            <span>Social Media (opțional)</span>
-          </h3>
-          <div className="space-y-2">
-            {/* Facebook */}
+        {/* Mesaj informativ */}
+        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/50 rounded-xl p-4">
+          <div className="flex items-start gap-3">
+            <span className="text-blue-500 text-lg">ℹ️</span>
             <div>
-              <label htmlFor="facebook" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1.5">
-                <FaFacebook className="text-[#1877F2] text-base" />
-                <span>Facebook</span>
-              </label>
-              <input
-                id="facebook"
-                name="facebook"
-                type="url"
-                value={formData.facebook}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#1877F2] focus:border-transparent transition-all shadow-sm"
-                placeholder="https://facebook.com/username"
-              />
-            </div>
-
-            {/* Instagram */}
-            <div>
-              <label htmlFor="instagram" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1.5">
-                <FaInstagram className="text-[#E4405F] text-base" />
-                <span>Instagram</span>
-              </label>
-              <input
-                id="instagram"
-                name="instagram"
-                type="url"
-                value={formData.instagram}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#E4405F] focus:border-transparent transition-all shadow-sm"
-                placeholder="https://instagram.com/username"
-              />
-            </div>
-
-            {/* YouTube */}
-            <div>
-              <label htmlFor="youtube" className="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1 flex items-center gap-1.5">
-                <FaYoutube className="text-[#FF0000] text-base" />
-                <span>YouTube</span>
-              </label>
-              <input
-                id="youtube"
-                name="youtube"
-                type="url"
-                value={formData.youtube}
-                onChange={handleChange}
-                className="w-full px-3 py-2 text-sm border border-gray-300/50 dark:border-gray-600/50 rounded-xl bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-[#FF0000] focus:border-transparent transition-all shadow-sm"
-                placeholder="https://youtube.com/@username"
-              />
+              <h4 className="text-sm font-semibold text-blue-800 dark:text-blue-200 mb-1">
+                Detalii suplimentare
+              </h4>
+              <p className="text-sm text-blue-700 dark:text-blue-300">
+                Poți completa profilul cu informații suplimentare (locație, telefon, social media) după înregistrare.
+              </p>
             </div>
           </div>
         </div>
@@ -418,7 +332,7 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-600 hover:from-purple-700 hover:via-pink-600 hover:to-indigo-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+          className="w-full bg-gradient-to-r from-purple-600 via-pink-500 to-indigo-600 hover:from-purple-700 hover:via-pink-600 hover:to-indigo-700 text-white font-bold py-3 sm:py-4 rounded-xl transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm sm:text-base"
         >
           <span className="flex items-center justify-center gap-2">
             {isSubmitting ? (
@@ -436,8 +350,8 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
         </button>
       </form>
 
-      <div className="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700/50">
-        <p className="text-xs text-center text-gray-600 dark:text-gray-400">
+      <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-200 dark:border-gray-700/50">
+        <p className="text-xs sm:text-sm text-center text-gray-600 dark:text-gray-400">
           Ai deja cont?{" "}
           <button
             onClick={onSwitchToLogin}

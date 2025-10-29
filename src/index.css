@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "./styles/mobile-optimizations.css";
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
@@ -14,16 +15,58 @@
   --color-primary-900: #581c87;
 }
 
-/* Animations for Home page */
+/* Optimizări pentru mobile și high-DPI displays */
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* Optimizare pentru imagini pe mobile */
+img {
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Optimizare pentru SVG-uri */
+svg {
+  shape-rendering: geometricPrecision;
+}
+
+/* Optimizare pentru text pe mobile */
+body {
+  font-smooth: always;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Media queries pentru high-DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  img,
+  svg {
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+}
+
+/* Animations for Home page - Optimizate pentru mișcare lentă și liniară */
 @keyframes blob {
   0% {
     transform: translate(0px, 0px) scale(1);
   }
-  33% {
-    transform: translate(30px, -50px) scale(1.1);
+  20% {
+    transform: translate(8px, -12px) scale(1.02);
   }
-  66% {
-    transform: translate(-20px, 20px) scale(0.9);
+  40% {
+    transform: translate(-5px, 6px) scale(0.98);
+  }
+  60% {
+    transform: translate(12px, -8px) scale(1.01);
+  }
+  80% {
+    transform: translate(-3px, 4px) scale(0.99);
   }
   100% {
     transform: translate(0px, 0px) scale(1);
@@ -31,15 +74,42 @@
 }
 
 .animate-blob {
-  animation: blob 7s infinite;
+  animation: blob 30s ease-in-out infinite;
 }
 
 .animation-delay-2000 {
-  animation-delay: 2s;
+  animation-delay: 8s;
 }
 
 .animation-delay-4000 {
-  animation-delay: 4s;
+  animation-delay: 16s;
+}
+
+/* Animații pentru gradiente statice și liniare */
+@keyframes gentle-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.gradient-animate {
+  background-size: 200% 200%;
+  animation: gentle-gradient 40s ease-in-out infinite;
+}
+
+/* Animații pentru hover effects foarte lente */
+.hover-slow {
+  transition: all 1s ease-in-out;
+}
+
+.hover-slow:hover {
+  transform: translateY(-2px);
 }
 
 /* Animații pentru notificări */
@@ -62,11 +132,11 @@
 }
 
 .animate-pulse-red {
-  animation: pulse-red 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: pulse-red 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 .animate-ping-red {
-  animation: ping-red 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+  animation: ping-red 3s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
 /* Player audio ultra-modern */
@@ -76,7 +146,7 @@ audio {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
   border-radius: 1rem !important;
   box-shadow: 0 20px 40px rgba(102, 126, 234, 0.3) !important;
-  transition: all 0.3s ease !important;
+  transition: all 0.8s ease !important;
 }
 
 audio:hover {
@@ -96,7 +166,7 @@ audio::-webkit-media-controls-play-button {
   background-color: rgba(255, 255, 255, 0.9) !important;
   border-radius: 50% !important;
   margin-right: 1rem !important;
-  transition: all 0.3s ease !important;
+  transition: all 0.8s ease !important;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
 }
 
@@ -133,7 +203,7 @@ audio::-webkit-media-controls-volume-slider {
 audio::-webkit-media-controls-fullscreen-button {
   background-color: rgba(255, 255, 255, 0.9) !important;
   border-radius: 50% !important;
-  transition: all 0.3s ease !important;
+  transition: all 0.8s ease !important;
 }
 
 audio::-webkit-media-controls-fullscreen-button:hover {
