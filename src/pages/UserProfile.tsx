@@ -225,7 +225,7 @@ const UserProfile: React.FC = () => {
 
             {/* Info de baza */}
             <div className="flex-1">
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-3">
                 {profile.displayName || "Utilizator"}
               </h1>
 
