@@ -4,6 +4,7 @@ import { FiStar, FiMail, FiMapPin, FiPhone } from "react-icons/fi";
 import { FaFacebook, FaInstagram, FaYoutube, FaMicrophone } from "react-icons/fa";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
+import { getAccountTypeLabel } from "../../utils/formatters";
 
 const ProfileCard: React.FC = () => {
   const { user } = useAuth();
@@ -74,7 +75,7 @@ const ProfileCard: React.FC = () => {
             </h2>
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center rounded-full bg-white/20 backdrop-blur-sm text-white px-3 py-1 text-sm font-medium">
-                {user.accountType === "producer" ? "Producător" : "Artist"}
+                {getAccountTypeLabel(user.accountType)}
               </span>
               <span className="inline-flex items-center gap-1 text-white bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
                 <FiStar className="fill-current text-yellow-300" />

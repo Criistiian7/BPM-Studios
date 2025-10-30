@@ -13,6 +13,7 @@ import {
   serverTimestamp,
 } from "firebase/firestore";
 import { FiUserPlus, FiCheck, FiX, FiHome } from "react-icons/fi";
+import { getAccountTypeLabel } from "../../utils/formatters";
 import AlertModal from "../../components/AlertModal";
 import { useAlert } from "../../hooks/useAlert";
 
@@ -272,9 +273,7 @@ const ConnectionRequests: React.FC = () => {
                       <div className="flex items-center gap-1">
                         <FiUserPlus className="text-xs" />
                         <span>
-                          {request.senderAccountType === "producer"
-                            ? "Producător"
-                            : "Artist"}
+                          {getAccountTypeLabel(request.senderAccountType)}
                         </span>
                       </div>
                     )}

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { FiPlay, FiPause, FiVolume2, FiVolumeX, FiEdit2, FiTrash2, FiSkipBack, FiSkipForward, FiShuffle, FiRepeat, FiStar } from "react-icons/fi";
 import RatingModal from "./RatingModal";
-import { saveTrackRating, getUserTrackRating, isConnectedToTrackOwner } from "../firebase/ratings";
+import { saveTrackRating, getUserTrackRating, isAllowedToRateTrack } from "../firebase/ratings";
 import { db } from "../firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import { slugify } from "../utils/slugify";
@@ -25,6 +25,7 @@ interface AudioPlayerProps {
     trackId?: string;
     currentUserId?: string;
     currentUserName?: string;
+    studioId?: string;
     collaborators?: string[]; // Array of collaborator IDs
     onUploadedByClick?: () => void;
     onEdit?: () => void;
@@ -47,6 +48,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
     trackId,
     currentUserId,
     currentUserName,
+    studioId,
     collaborators = [],
     onUploadedByClick,
     onEdit,
@@ -129,6 +131,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
                             // or update immediately for subsequent changes
                             if (loadedCount >= collaborators.length || Object.keys(tempCollaborators).length > 0) {
                                 const updatedList = collaborators
+                                    .filter(id => id !== uploadedById) // exclude uploader from featuring
                                     .map(id => tempCollaborators[id])
                                     .filter(Boolean);
 
@@ -159,7 +162,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
         };
     }, [collaboratorsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // Check if user can rate (is connected to track owner)
+    // Check if user can rate (connected to owner OR member of studio)
     useEffect(() => {
         const checkRatingPermission = async () => {
             if (!currentUserId || !uploadedById || !trackId) {
@@ -169,11 +172,11 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
             }
 
             try {
-                const connected = await isConnectedToTrackOwner(currentUserId, uploadedById);
-                setCanRate(connected);
+                const allowed = await isAllowedToRateTrack(currentUserId, uploadedById, studioId);
+                setCanRate(allowed);
 
                 // Load current user's rating if they can rate
-                if (connected) {
+                if (allowed) {
                     const rating = await getUserTrackRating(trackId, currentUserId);
                     setCurrentRating(rating);
                 }
@@ -186,7 +189,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
         };
 
         checkRatingPermission();
-    }, [currentUserId, uploadedById, trackId]);
+    }, [currentUserId, uploadedById, trackId, studioId]);
 
     useEffect(() => {
         const audio = audioRef.current;
@@ -302,7 +305,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
         // Delay hiding the slider by 2 seconds
         volumeTimeoutRef.current = setTimeout(() => {
             setShowVolumeSlider(false);
-        }, 2000);
+        }, 200);
     };
 
     const toggleRepeat = () => {
@@ -567,13 +570,29 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
                                 {/* Volume Control */}
                                 <div
-                                    className="relative flex-shrink-0"
+                                    className="relative flex-shrink-0 flex items-center gap-2 group/volume"
                                     onMouseEnter={handleVolumeMouseEnter}
                                     onMouseLeave={handleVolumeMouseLeave}
                                 >
+                                    {/* Slider inline care se extinde spre stânga (plasat înaintea iconiței) */}
+                                    <div className={`overflow-hidden transition-all duration-150 ${showVolumeSlider ? 'w-28 opacity-100' : 'w-0 opacity-0'} group-hover/volume:w-28 group-hover/volume:opacity-100`}>
+                                        <input
+                                            type="range"
+                                            min="0"
+                                            max="1"
+                                            step="0.01"
+                                            value={isMuted ? 0 : volume}
+                                            onChange={handleVolumeChange}
+                                            className="w-28 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-blue-500 [&::-webkit-slider-thumb]:to-violet-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:shadow-blue-500/50 hover:[&::-webkit-slider-thumb]:scale-110 [&::-webkit-slider-thumb]:transition-transform"
+                                            style={{
+                                                background: `linear-gradient(to right, rgb(59 130 246) 0%, rgb(124 58 237) ${(isMuted ? 0 : volume) * 100}%, rgb(226 232 240) ${(isMuted ? 0 : volume) * 100}%, rgb(226 232 240) 100%)`
+                                            }}
+                                            aria-label="Volume"
+                                        />
+                                    </div>
                                     <button
                                         onClick={toggleMute}
-                                        className="p-2 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10 rounded-lg transition-all duration-200"
+                                        className="p-2 text-slate-500 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg transition-all duration-200"
                                         aria-label={isMuted ? "Unmute" : "Mute"}
                                     >
                                         {isMuted || volume === 0 ? (
@@ -582,30 +601,6 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
                                             <FiVolume2 className="text-lg" />
                                         )}
                                     </button>
-
-                                    {/* Volume Slider - Extended hover area */}
-                                    {showVolumeSlider && (
-                                        <div className="absolute bottom-full right-0 mb-2 p-3 bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm rounded-xl shadow-xl border border-slate-200 dark:border-slate-700">
-                                            <div className="flex flex-col items-center gap-2">
-                                                <span className="text-xs font-semibold text-slate-600 dark:text-slate-400">
-                                                    {Math.round((isMuted ? 0 : volume) * 100)}%
-                                                </span>
-                                                <input
-                                                    type="range"
-                                                    min="0"
-                                                    max="1"
-                                                    step="0.01"
-                                                    value={isMuted ? 0 : volume}
-                                                    onChange={handleVolumeChange}
-                                                    className="w-28 h-2 bg-slate-200 dark:bg-slate-700 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-gradient-to-r [&::-webkit-slider-thumb]:from-blue-500 [&::-webkit-slider-thumb]:to-violet-600 [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:shadow-lg [&::-webkit-slider-thumb]:shadow-blue-500/50 hover:[&::-webkit-slider-thumb]:scale-110 [&::-webkit-slider-thumb]:transition-transform"
-                                                    style={{
-                                                        background: `linear-gradient(to right, rgb(59 130 246) 0%, rgb(124 58 237) ${(isMuted ? 0 : volume) * 100}%, rgb(226 232 240) ${(isMuted ? 0 : volume) * 100}%, rgb(226 232 240) 100%)`
-                                                    }}
-                                                    aria-label="Volume"
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         </div>

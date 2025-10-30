@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/authContext";
 import { FiUser, FiUsers, FiMic, FiSun, FiMoon, FiSettings, FiLogOut, FiMenu, FiX } from "react-icons/fi";
-import { getInitials } from "../../utils/formatters";
+import { getInitials, isProducer } from "../../utils/formatters";
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -121,18 +121,18 @@ const Navbar: React.FC = () => {
                 </Link>
 
                 {/* Butonul Studio - vizibil doar pentru producători */}
-                {user.accountType === "producer" && (
+                {isProducer(user.accountType) && (
                   <Link to="/studio" className={navLinkClass("/studio")}>
                     <FiMic className="text-lg" />
                     <span>Studio</span>
                   </Link>
                 )}
 
-                {/* Butonul Studiouri - vizibil doar pentru artiști */}
-                {(user.accountType === "artist" || user.accountType === "Artist") && (
-                  <Link to="/artist-studios" className={navLinkClass("/artist-studios")}>
+                {/* Butonul Studio Connect - vizibil pentru artiști și producători */}
+                {(isProducer(user.accountType) || user.accountType === "artist" || user.accountType === "Artist") && (
+                  <Link to="/studio-connect" className={navLinkClass("/studio-connect")}>
                     <FiMic className="text-lg" />
-                    <span>Studiouri</span>
+                    <span>Studio Connect</span>
                   </Link>
                 )}
               </>
@@ -279,7 +279,7 @@ const Navbar: React.FC = () => {
                   </Link>
 
                   {/* Butonul Studio - vizibil doar pentru producători */}
-                  {user.accountType === "producer" && (
+                  {isProducer(user.accountType) && (
                     <Link
                       to="/studio"
                       onClick={closeMobileMenu}
@@ -293,18 +293,18 @@ const Navbar: React.FC = () => {
                     </Link>
                   )}
 
-                  {/* Butonul Studiouri - vizibil doar pentru artiști */}
-                  {(user.accountType === "artist" || user.accountType === "Artist") && (
+                  {/* Butonul Studio Connect - vizibil pentru artiști și producători */}
+                  {(isProducer(user.accountType) || user.accountType === "artist" || user.accountType === "Artist") && (
                     <Link
-                      to="/artist-studios"
+                      to="/studio-connect"
                       onClick={closeMobileMenu}
-                      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-500 transform hover:scale-105 touch-manipulation ${location.pathname === "/artist-studios"
+                      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-500 transform hover:scale-105 touch-manipulation ${location.pathname === "/studio-connect"
                         ? "bg-primary-500 text-white shadow-lg shadow-primary-500/30"
                         : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 hover:shadow-md"
                         }`}
                     >
                       <FiMic className="text-lg" />
-                      <span className="font-medium">Studiouri</span>
+                      <span className="font-medium">Studio Connect</span>
                     </Link>
                   )}
                 </>

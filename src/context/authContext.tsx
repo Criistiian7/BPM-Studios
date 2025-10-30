@@ -83,6 +83,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
           accountType,
           rating,
           studioId: profileData?.studioId ?? undefined,
+          // Câmpuri suplimentare pentru ProfileCard
+          description: profileData?.description ?? undefined,
+          location: profileData?.location ?? undefined,
+          phoneNumber: profileData?.phoneNumber ?? undefined,
+          genre: typeof profileData?.genre === "string" ? profileData.genre : undefined,
+          socialLinks: profileData?.socialLinks ? {
+            facebook: profileData.socialLinks.facebook ?? null,
+            instagram: profileData.socialLinks.instagram ?? null,
+            youtube: profileData.socialLinks.youtube ?? null,
+          } : undefined,
+          statistics: profileData?.statistics ? {
+            tracksUploaded: typeof profileData.statistics.tracksUploaded === "number" 
+              ? profileData.statistics.tracksUploaded 
+              : 0,
+            projectsCompleted: typeof profileData.statistics.projectsCompleted === "number"
+              ? profileData.statistics.projectsCompleted
+              : 0,
+          } : undefined,
+          memberSince: profileData?.memberSince ?? undefined,
+          slug: profileData?.slug ?? undefined,
         };
       }
 
@@ -105,7 +125,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     } else {
       // Redirectionează la pagina principală dacă nu este pe o pagină publică
-      if (initialAuthCheck && !PUBLIC_ROUTES.includes(location.pathname as any)) {
+      if (initialAuthCheck && !PUBLIC_ROUTES.includes(location.pathname as (typeof PUBLIC_ROUTES)[number])) {
         navigate("/home");
       }
     }
@@ -113,33 +133,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Effect pentru gestionarea schimbărilor de autentificare
   useEffect(() => {
+    let isMounted = true; // Flag pentru a evita actualizările de stare după unmount
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser: User | null) => {
+      // Ignoră actualizările dacă componenta nu este montată
+      if (!isMounted) return;
+
       if (firebaseUser) {
         // Setează utilizatorul de bază imediat pentru loading mai rapid
         const basicUser = createBasicUser(firebaseUser);
-        setUser(basicUser);
-        setLoading(false);
+        if (isMounted) {
+          setUser(basicUser);
+          setLoading(false);
+        }
 
         // Încarcă datele complete în background
         try {
           const fullUser = await loadUserProfile(firebaseUser);
-          setUser(fullUser);
+          if (isMounted) {
+            setUser(fullUser);
+          }
         } catch (error) {
-          handleError(error, 'AuthContext.onAuthStateChanged');
+          // Ignoră erorile Firestore dacă utilizatorul s-a deconectat între timp
+          if (isMounted && auth.currentUser) {
+            handleError(error, 'AuthContext.onAuthStateChanged');
+          }
         }
 
-        handleUserRedirect(true);
+        if (isMounted) {
+          handleUserRedirect(true);
+        }
       } else {
         // Utilizatorul nu este autentificat
-        setUser(null);
-        setLoading(false);
-        handleUserRedirect(false);
+        if (isMounted) {
+          setUser(null);
+          setLoading(false);
+          handleUserRedirect(false);
+        }
       }
 
-      setInitialAuthCheck(false);
+      if (isMounted) {
+        setInitialAuthCheck(false);
+      }
     });
 
-    return () => unsubscribe();
+    return () => {
+      isMounted = false;
+      unsubscribe();
+    };
   }, [location.pathname, initialAuthCheck]);
 
   /**
@@ -217,8 +258,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
    */
   const logout = async () => {
     try {
+      // Resetează starea utilizatorului înainte de logout pentru a preveni erorile Firestore
+      setUser(null);
+      setLoading(true);
+      
+      // Realizează logout-ul
       await signOut(auth);
+      
+      // Navighează la homepage după logout
+      navigate("/home", { replace: true });
     } catch (error) {
+      // Chiar dacă apare o eroare, resetează starea
+      setUser(null);
+      setLoading(false);
       throw handleFirebaseError(error);
     }
   };

@@ -36,8 +36,8 @@ const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
       await login(emailValue, password);
       // Șterge email-ul salvat după login reușit
       localStorage.removeItem(STORAGE_KEY);
-    } catch (err: any) {
-      const errorCode = err?.code || "";
+    } catch (err: unknown) {
+      const errorCode = (err as { code?: string })?.code || "";
 
       // Traducere mesaje Firebase în română
       if (errorCode === "auth/invalid-credential") {

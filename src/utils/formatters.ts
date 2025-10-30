@@ -46,3 +46,81 @@ export const formatFileSize = (bytes: number): string => {
   return `${(bytes / Math.pow(k, i)).toFixed(2)} ${sizes[i]}`;
 };
 
+/**
+ * Normalizează accountType la format standard (lowercase)
+ * Acceptă: "producer", "Producer", "Producător", "producător" -> "producer"
+ * @param accountType - Tipul de cont (poate fi în diverse formate)
+ * @returns Tipul de cont normalizat
+ */
+export const normalizeAccountType = (
+  accountType: string | undefined | null
+): "producer" | "artist" | "studio" => {
+  if (!accountType) return "artist"; // default
+
+  const normalized = accountType.toLowerCase().trim();
+
+  // Normalizează toate variantele de producer
+  if (
+    normalized === "producer" ||
+    normalized === "producător" ||
+    normalized === "produces"
+  ) {
+    return "producer";
+  }
+
+  if (normalized === "studio") {
+    return "studio";
+  }
+
+  // Default pentru artist
+  return "artist";
+};
+
+/**
+ * Convertește accountType normalizat la text afișabil în română
+ * @param accountType - Tipul de cont
+ * @returns Eticheta în română pentru tipul de cont
+ */
+export const getAccountTypeLabel = (
+  accountType: string | undefined | null
+): string => {
+  const normalized = normalizeAccountType(accountType);
+
+  switch (normalized) {
+    case "producer":
+      return "Producător";
+    case "artist":
+      return "Artist";
+    case "studio":
+      return "Studio";
+    default:
+      return "Artist";
+  }
+};
+
+/**
+ * Verifică dacă accountType este producer (acceptă toate variantele)
+ * @param accountType - Tipul de cont de verificat
+ * @returns true dacă este producer
+ */
+export const isProducer = (accountType: string | undefined | null): boolean => {
+  return normalizeAccountType(accountType) === "producer";
+};
+
+/**
+ * Verifică dacă accountType este artist (acceptă toate variantele)
+ * @param accountType - Tipul de cont de verificat
+ * @returns true dacă este artist
+ */
+export const isArtist = (accountType: string | undefined | null): boolean => {
+  return normalizeAccountType(accountType) === "artist";
+};
+
+/**
+ * Verifică dacă accountType este studio
+ * @param accountType - Tipul de cont de verificat
+ * @returns true dacă este studio
+ */
+export const isStudio = (accountType: string | undefined | null): boolean => {
+  return normalizeAccountType(accountType) === "studio";
+};

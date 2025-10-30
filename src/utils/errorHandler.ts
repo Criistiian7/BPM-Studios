@@ -11,7 +11,7 @@ export class AppError extends Error {
 
   constructor(
     message: string,
-    code: string = ERROR_CODES.DEFAULT,
+    code: string = "unknown-error",
     context?: Record<string, any>
   ) {
     super(message);
@@ -49,8 +49,8 @@ export class AppError extends Error {
  * Funcție pentru gestionarea erorilor Firebase
  * Convertește erorile Firebase în AppError cu mesaje prietenoase
  */
-export const handleFirebaseError = (error: any): AppError => {
-  const errorCode = error?.code || ERROR_CODES.DEFAULT;
+export const handleFirebaseError = (error: unknown): AppError => {
+  const errorCode = (error as { code?: string })?.code || "unknown-error";
   const errorMessage =
     ERROR_MESSAGES[errorCode as keyof typeof ERROR_MESSAGES] ||
     ERROR_MESSAGES.DEFAULT;

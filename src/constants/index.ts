@@ -47,6 +47,7 @@ export const ACCOUNT_TYPES = {
   ARTIST: "artist",
   ARTIST_CAPITAL: "Artist",
   PRODUCER: "producer",
+  PRODUCER_CAPITAL: "Producer",
   STUDIO: "studio",
 } as const;
 
@@ -105,7 +106,7 @@ export const PAGINATION = {
 // Configurații pentru validare
 export const VALIDATION = {
   EMAIL_REGEX: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  PHONE_REGEX: /^[\+]?[1-9][\d]{0,15}$/,
+  PHONE_REGEX: /^[+]?[1-9][\d]{0,15}$/,
   PASSWORD_MIN_LENGTH: 6,
 } as const;
 

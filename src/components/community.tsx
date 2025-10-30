@@ -12,7 +12,7 @@ import {
   deleteDoc,
   doc,
   updateDoc,
-  getDoc,
+  arrayRemove,
 } from "firebase/firestore";
 import type { UserProfile } from "../types/user";
 import { FiUserPlus, FiCheck, FiUsers, FiHome, FiMapPin, FiStar, FiX } from "react-icons/fi";
@@ -20,6 +20,7 @@ import { useNavigate } from "react-router-dom";
 import { slugify } from "../utils/slugify";
 import AlertModal from "./AlertModal";
 import { useAlert } from "../hooks/useAlert";
+import { getAccountTypeLabel, isProducer, isStudio, isArtist } from "../utils/formatters";
 
 function Community() {
   const { user: currentUser } = useAuth();
@@ -34,6 +35,11 @@ function Community() {
   const [studiosCount, setStudiosCount] = useState(0);
   const navigate = useNavigate();
 
+  // Confirmare "Renunță la studio"
+  const [leaveModalOpen, setLeaveModalOpen] = useState(false);
+  const [studioToLeave, setStudioToLeave] = useState<UserProfile | null>(null);
+  const [leaving, setLeaving] = useState(false);
+
   // Fetch total counts pentru tab toggler - ACTUALIZARE DINAMICĂ
   useEffect(() => {
     // Listener pentru users
@@ -41,7 +47,7 @@ function Community() {
     const unsubscribeUsers = onSnapshot(usersRef, (snapshot) => {
       const artistsProducers = snapshot.docs.filter(doc => {
         const accountType = doc.data().accountType;
-        return accountType === "artist" || accountType === "producer";
+        return isArtist(accountType) || isProducer(accountType);
       });
       setArtistsProducersCount(artistsProducers.length);
     }, (error) => {
@@ -71,7 +77,7 @@ function Community() {
       // Listener în timp real pentru studios
       const studiosRef = collection(db, "studios");
       unsubscribe = onSnapshot(studiosRef, (querySnapshot) => {
-        const studiosData: any[] = [];
+        const studiosData: UserProfile[] = [];
         querySnapshot.forEach((doc) => {
           const studioData = doc.data();
           studiosData.push({
@@ -87,6 +93,7 @@ function Community() {
             socialLinks: studioData.socialLinks || {},
             statistics: studioData.statistics || { tracksUploaded: 0, projectsCompleted: 0 },
             memberSince: studioData.createdAt || "",
+            phoneNumber: studioData.phoneNumber || null,
             studioId: doc.id,
             // Studio-specific data
             ownerId: studioData.ownerId,
@@ -218,11 +225,11 @@ function Community() {
     }
 
     // For studios, send request to the owner, not the studio itself
-    const receiverId = targetUser.accountType === "studio" && targetUser.ownerId
+    const receiverId = isStudio(targetUser.accountType) && targetUser.ownerId
       ? targetUser.ownerId
       : targetUser.uid;
 
-    const receiverName = targetUser.accountType === "studio" && targetUser.ownerName
+    const receiverName = isStudio(targetUser.accountType) && targetUser.ownerName
       ? targetUser.ownerName
       : (targetUser.displayName || targetUser.email);
 
@@ -239,7 +246,7 @@ function Community() {
     setSendingRequest(targetUser.uid);
 
     try {
-      const requestType = targetUser.accountType === "studio" ? "studio_join" : "connection";
+      const requestType = isStudio(targetUser.accountType) ? "studio_join" : "connection";
 
 
       // Check for existing pending requests
@@ -258,34 +265,50 @@ function Community() {
       }
 
       // Create request document
-      const requestData: any = {
+      const requestData: {
+        senderId: string;
+        senderName: string;
+        senderEmail: string;
+        senderAvatar: string | null;
+        senderAccountType: string;
+        receiverId: string;
+        receiverName: string;
+        requestType: string;
+        status: string;
+        createdAt: ReturnType<typeof serverTimestamp>;
+        studioId?: string;
+        studioName?: string;
+        studioOwnerId?: string;
+        studioOwnerName?: string;
+      } = {
         senderId: currentUser.id,
         senderName: currentUser.name,
         senderEmail: currentUser.email,
         senderAvatar: currentUser.avatar || null,
         senderAccountType: currentUser.accountType,
         receiverId: receiverId,
-        receiverName: receiverName,
+        receiverName: receiverName || "",
         requestType: requestType,
         status: "pending",
         createdAt: serverTimestamp(),
       };
 
       // Add studio-specific fields if it's a studio join request
-      if (targetUser.accountType === "studio") {
+      if (isStudio(targetUser.accountType)) {
         requestData.studioId = targetUser.uid;
-        requestData.studioName = targetUser.displayName;
+        requestData.studioName = targetUser.displayName || "";
         requestData.studioOwnerId = targetUser.ownerId;
-        requestData.studioOwnerName = targetUser.ownerName;
+        requestData.studioOwnerName = targetUser.ownerName || "";
       }
 
       await addDoc(collection(db, "connectionRequests"), requestData);
 
       setSentRequests((prev) => new Set(prev).add(receiverId));
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error sending request: ", error);
-      const requestTypeText = targetUser.accountType === "studio" ? "alăturare la studio" : "conectare";
-      showError(`Eroare la trimiterea cererii de ${requestTypeText}: ${error.message}`);
+      const requestTypeText = isStudio(targetUser.accountType) ? "alăturare la studio" : "conectare";
+      const errorMessage = error instanceof Error ? error.message : "Eroare necunoscută";
+      showError(`Eroare la trimiterea cererii de ${requestTypeText}: ${errorMessage}`);
     } finally {
       setSendingRequest(null);
     }
@@ -299,7 +322,7 @@ function Community() {
       setSendingRequest(targetUser.uid);
 
       // For studios, cancel request to the owner, not the studio itself
-      const receiverId = targetUser.accountType === "studio" && targetUser.ownerId
+      const receiverId = isStudio(targetUser.accountType) && targetUser.ownerId
         ? targetUser.ownerId
         : targetUser.uid;
 
@@ -327,7 +350,7 @@ function Community() {
 
         showWarning(`Cererea către ${targetUser.displayName || targetUser.email} a fost anulată.`);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error canceling request: ", error);
       showError("Eroare la anularea cererii. Te rugăm să încerci din nou.");
     } finally {
@@ -335,87 +358,91 @@ function Community() {
     }
   }, [currentUser, showWarning, showError]);
 
-  // Funcție pentru renunțarea la un studio
+  // Update handleLeaveStudio pentru arrayRemove
   const handleLeaveStudio = useCallback(async (studio: UserProfile) => {
     if (!currentUser || !studio.uid) return;
-
     try {
       setSendingRequest(studio.uid);
-
-      // Actualizează studio-ul pentru a elimina utilizatorul din memberIds
       const studioRef = doc(db, "studios", studio.uid);
-      const studioDoc = await getDoc(studioRef);
+      await updateDoc(studioRef, {
+        memberIds: arrayRemove(currentUser.id),
+        updatedAt: serverTimestamp(),
+      });
 
-      if (studioDoc.exists()) {
-        const studioData = studioDoc.data();
-        const memberIds = studioData.memberIds || [];
-
-        // Elimină utilizatorul curent din lista de membri
-        const updatedMemberIds = memberIds.filter((id: string) => id !== currentUser.id);
-
-        // Actualizează studio-ul
-        await updateDoc(studioRef, {
-          memberIds: updatedMemberIds,
-          updatedAt: serverTimestamp()
-        });
-
-        // Actualizează profilul utilizatorului pentru a elimina studioId
-        const userRef = doc(db, "users", currentUser.id);
-        await updateDoc(userRef, {
-          studioId: null,
-          updatedAt: serverTimestamp()
-        });
-
-        // Șterge cererea acceptată din connectionRequests pentru a preveni reapariția
+      // Curăță cererile ACCEPTATE pentru acest studio ca să nu reapari ca "membru"
+      try {
         const requestsRef = collection(db, "connectionRequests");
-        const studioJoinRequestsQuery = query(
+        const acceptedJoinQuery = query(
           requestsRef,
           where("senderId", "==", currentUser.id),
-          where("receiverId", "==", studio.ownerId || studio.uid),
           where("requestType", "==", "studio_join"),
           where("status", "==", "accepted")
         );
-
-        const requestsSnapshot = await getDocs(studioJoinRequestsQuery);
-        await Promise.all(
-          requestsSnapshot.docs.map((docSnapshot) =>
-            deleteDoc(doc(db, "connectionRequests", docSnapshot.id))
-          )
-        );
-
-        // Actualizează state-ul local - pentru studii șterge ownerId
-        setConnectedUsers((prev) => {
-          const newSet = new Set(prev);
-          // Pentru studii, șterge ownerId în loc de uid
-          if (studio.ownerId) {
-            newSet.delete(studio.ownerId);
-          } else {
-            newSet.delete(studio.uid);
-          }
-          return newSet;
+        const acceptedSnap = await getDocs(acceptedJoinQuery);
+        const toDelete = acceptedSnap.docs.filter(d => {
+          const data = d.data() as any;
+          return data.studioId === studio.uid || data.receiverId === (studio.ownerId || studio.uid);
         });
-
-        showWarning(`Ai renunțat la studio-ul ${studio.displayName}.`);
+        await Promise.all(toDelete.map(d => deleteDoc(doc(db, "connectionRequests", d.id))));
+      } catch (err) {
+        console.warn("[Community] LeaveStudio: couldn't cleanup accepted requests", err);
       }
-    } catch (error: any) {
-      console.error("Error leaving studio: ", error);
-      showError("Eroare la renunțarea la studio. Te rugăm să încerci din nou.");
+
+      // Actualizează local setul de conexiuni pentru UI instant
+      setConnectedUsers(prev => {
+        const next = new Set(prev);
+        if (studio.ownerId) next.delete(studio.ownerId);
+        return next;
+      });
+
+      showWarning(`Ai renunțat la studio-ul ${studio.displayName}.`);
+    } catch (error) {
+      showError("Eroare la renunțarea la studio.");
+    } finally {
+      setSendingRequest(null);
+    }
+  }, [currentUser, showWarning, showError]);
+
+  const handleRemoveContactByUser = useCallback(async (targetUser: UserProfile) => {
+    if (!currentUser) return;
+    try {
+      setSendingRequest(targetUser.uid);
+      const connectionsRef = collection(db, "connections");
+      const q = query(
+        connectionsRef,
+        where("userId", "==", currentUser.id),
+        where("connectedUserId", "==", targetUser.uid)
+      );
+      const snap = await getDocs(q);
+      await Promise.all(snap.docs.map(d => deleteDoc(doc(db, "connections", d.id))));
+      showWarning(`Ai șters contactul cu ${targetUser.displayName || targetUser.email}.`);
+    } catch (err) {
+      console.error("Error removing contact:", err);
+      showError("Eroare la ștergerea contactului.");
     } finally {
       setSendingRequest(null);
     }
   }, [currentUser, showWarning, showError]);
 
   const filteredUsers = useMemo(() => users.filter((user) => {
-    // Exclude current user from the list
-    if (currentUser && user.uid === currentUser.id) {
+    // Exclude current user from the list (but NOT studios - studios should always be visible)
+    // For studios, we want to show them even if the current user is the owner
+    // Only exclude regular users that match current user
+    if (currentUser && !isStudio(user.accountType) && user.uid === currentUser.id) {
       return false;
     }
 
-    // Apply search filter
+    // Apply search filter - if searchTerm is empty, show all users
+    if (!searchTerm.trim()) {
+      return true;
+    }
+
+    const searchLower = searchTerm.toLowerCase();
     const matchesSearch =
-      user.displayName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (user.accountType === "studio" && user.ownerName?.toLowerCase().includes(searchTerm.toLowerCase()));
+      user.displayName?.toLowerCase().includes(searchLower) ||
+      user.description?.toLowerCase().includes(searchLower) ||
+      (isStudio(user.accountType) && user.ownerName?.toLowerCase().includes(searchLower)) ||
+      user.location?.toLowerCase().includes(searchLower);
 
     return matchesSearch;
   }), [users, currentUser, searchTerm]);
@@ -473,7 +500,7 @@ function Community() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredUsers.map((user) => {
             // Pentru studiouri, verifică ownerId în loc de uid
-            const checkId = user.accountType === "studio" && user.ownerId ? user.ownerId : user.uid;
+            const checkId = isStudio(user.accountType) && user.ownerId ? user.ownerId : user.uid;
             const requestSent = sentRequests.has(checkId);
             const isConnected = connectedUsers.has(checkId);
             const isSending = sendingRequest === user.uid;
@@ -487,7 +514,7 @@ function Community() {
                   navigate(`/profile/${slug}`);
                 }}
               >
-                {user.accountType === "studio" ? (
+                {isStudio(user.accountType) ? (
                   // Studio Card Layout
                   <>
                     {/* Studio Image */}
@@ -579,11 +606,11 @@ function Community() {
 
                     {/* Tip cont și Rating */}
                     <div className="flex items-center justify-center gap-2 mb-3">
-                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.accountType === "producer"
+                      <span className={`px-3 py-1 rounded-full text-xs font-medium ${isProducer(user.accountType)
                         ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
                         : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
                         }`}>
-                        {user.accountType === "producer" ? "Producător" : "Artist"}
+                        {getAccountTypeLabel(user.accountType)}
                       </span>
                       <div className="flex items-center gap-1 text-yellow-500">
                         <FiStar className="fill-current text-sm" />
@@ -607,9 +634,20 @@ function Community() {
                 )}
 
                 {/* Buton Conectare/Alătură-te */}
-                {user.accountType === "studio" ? (
+                {isStudio(user.accountType) ? (
                   // Studio Join Button
-                  isConnected ? (
+                  // Verifică dacă utilizatorul curent este owner-ul studioului
+                  currentUser && user.ownerId === currentUser.id ? (
+                    <button
+                      disabled
+                      onClick={(e) => e.stopPropagation()}
+                      className="w-full bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 cursor-not-allowed opacity-75"
+                      title="Ești owner-ul acestui studio"
+                    >
+                      <FiUsers />
+                      <span>Ești owner-ul studioului</span>
+                    </button>
+                  ) : isConnected ? (
                     <div className="flex gap-2">
                       <button
                         disabled
@@ -622,7 +660,8 @@ function Community() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleLeaveStudio(user);
+                          setStudioToLeave(user);
+                          setLeaveModalOpen(true);
                         }}
                         disabled={isSending}
                         className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/50 font-medium py-2 px-3 rounded-lg flex items-center justify-center gap-1 transition-colors"
@@ -678,14 +717,27 @@ function Community() {
                 ) : (
                   // Regular User Connect Button
                   isConnected ? (
-                    <button
-                      disabled
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-full bg-green-600 dark:bg-green-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 opacity-75 cursor-not-allowed"
-                    >
-                      <FiCheck />
-                      <span>Conectat</span>
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        disabled
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 bg-green-600 dark:bg-green-700 text-white font-medium py-2 px-4 rounded-lg flex items-center justify-center gap-2 opacity-75 cursor-not-allowed"
+                      >
+                        <FiCheck />
+                        <span>Conectat</span>
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveContactByUser(user);
+                        }}
+                        disabled={isSending}
+                        className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/50 font-medium py-2 px-3 rounded-lg flex items-center justify-center gap-1 transition-colors"
+                        title="Șterge contact"
+                      >
+                        <FiX />
+                      </button>
+                    </div>
                   ) : requestSent ? (
                     <div className="flex gap-2">
                       <button
@@ -754,6 +806,74 @@ function Community() {
         title={alertState.title}
         message={alertState.message}
       />
+
+      {/* Modal Confirmare Renunță la Studio */}
+      {leaveModalOpen && studioToLeave && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 animate-scale-in">
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-full">
+                <FiX className="text-2xl text-red-600 dark:text-red-400" />
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white">Renunță la Studio</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Această acțiune te va scoate din lista de membri</p>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="mb-6">
+              <p className="text-gray-700 dark:text-gray-300">
+                Ești sigur că vrei să renunți la studio-ul
+                {" "}
+                <strong className="text-gray-900 dark:text-white">{studioToLeave.displayName}</strong>?
+              </p>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setLeaveModalOpen(false);
+                  setStudioToLeave(null);
+                }}
+                disabled={leaving}
+                className="flex-1 px-4 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg font-semibold hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Anulează
+              </button>
+              <button
+                onClick={async () => {
+                  if (!studioToLeave) return;
+                  setLeaving(true);
+                  try {
+                    await handleLeaveStudio(studioToLeave);
+                    setLeaveModalOpen(false);
+                    setStudioToLeave(null);
+                  } finally {
+                    setLeaving(false);
+                  }
+                }}
+                disabled={leaving}
+                className="flex-1 px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {leaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span>Se aplică...</span>
+                  </>
+                ) : (
+                  <>
+                    <FiX />
+                    <span>Da, Renunță</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

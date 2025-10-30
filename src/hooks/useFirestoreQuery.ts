@@ -7,10 +7,10 @@ import {
   doc,
   getDoc,
   QueryConstraint,
-  DocumentData,
   QuerySnapshot,
   DocumentSnapshot,
-  Unsubscribe,
+  type DocumentData,
+  type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -212,7 +212,6 @@ export const useFirestorePaginatedQuery = <T = DocumentData>(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
-  const [lastDoc, setLastDoc] = useState<DocumentData | null>(null);
 
   const loadMore = useCallback(async () => {
     if (!hasMore || loading) return;
@@ -237,7 +236,6 @@ export const useFirestorePaginatedQuery = <T = DocumentData>(
       }
 
       setData((prev) => [...prev, ...items]);
-      setLastDoc(snapshot.docs[snapshot.docs.length - 1] || null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
@@ -248,7 +246,6 @@ export const useFirestorePaginatedQuery = <T = DocumentData>(
   const reset = useCallback(() => {
     setData([]);
     setHasMore(true);
-    setLastDoc(null);
     setError(null);
   }, []);
 
@@ -279,7 +276,7 @@ export const useFirestorePaginatedQuery = <T = DocumentData>(
 export const useFirestoreSearch = <T = DocumentData>(
   collectionName: string,
   searchTerm: string = "",
-  filters: Record<string, any> = {}
+  filters: Record<string, unknown> = {}
 ) => {
   const [data, setData] = useState<T[]>([]);
   const [loading, setLoading] = useState(true);
@@ -305,18 +302,22 @@ export const useFirestoreSearch = <T = DocumentData>(
 
           // Aplică filtrele locale
           if (searchTerm) {
-            items = items.filter((item) =>
-              Object.values(item).some(
+            items = items.filter((item) => {
+              const itemObj = item as Record<string, unknown>;
+              return Object.values(itemObj).some(
                 (value) =>
                   typeof value === "string" &&
                   value.toLowerCase().includes(searchTerm.toLowerCase())
-              )
-            );
+              );
+            });
           }
 
           Object.entries(filters).forEach(([key, value]) => {
             if (value !== undefined && value !== null && value !== "") {
-              items = items.filter((item) => item[key] === value);
+              items = items.filter((item) => {
+                const itemObj = item as Record<string, unknown>;
+                return itemObj[key] === value;
+              });
             }
           });
 

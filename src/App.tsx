@@ -30,7 +30,7 @@ const Profil = lazy(() =>
 
 const ProfileEdit = lazy(() => import("./pages/ProfileEdit"));
 const Studio = lazy(() => import("./pages/Studio"));
-const ArtistStudios = lazy(() => import("./pages/ArtistStudios"));
+const StudioConnect = lazy(() => import("./pages/StudioConnect"));
 const Community = lazy(() => import("./components/community"));
 const UserProfile = lazy(() => import("./pages/UserProfile"));
 
@@ -96,8 +96,8 @@ const App: React.FC = () => {
           {/* Ruta pentru studio */}
           <Route path="/studio" element={<Studio />} />
 
-          {/* Ruta pentru studiourile artiștilor */}
-          <Route path="/artist-studios" element={<ArtistStudios />} />
+          {/* Ruta pentru Studio Connect - disponibilă pentru artiști și producători */}
+          <Route path="/studio-connect" element={<StudioConnect />} />
         </Routes>
       </Suspense>
     </GlobalAudioProvider>

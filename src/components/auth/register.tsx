@@ -95,7 +95,7 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
       await registerUser(formData.email, formData.password, fullName, formData.accountType);
 
       // 🔹 Corectare Promise + onAuthStateChanged
-      const user = await new Promise<any>((resolve, reject) => {
+      const user = await new Promise<{ uid: string } | null>((resolve, reject) => {
         const unsubscribe = auth.onAuthStateChanged(
           (fbUser) => {
             if (fbUser) {
@@ -139,8 +139,8 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
       setTimeout(() => {
         onSwitchToLogin();
       }, 1500);
-    } catch (err: any) {
-      const errorCode = err?.code || "";
+    } catch (err: unknown) {
+      const errorCode = (err as { code?: string })?.code || "";
 
       // Traducere completă mesaje Firebase în română
       if (errorCode === "auth/email-already-in-use") {

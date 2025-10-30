@@ -1,4 +1,4 @@
-import React, { ButtonHTMLAttributes, ReactNode } from "react";
+import React, { type ButtonHTMLAttributes, type ReactNode } from "react";
 
 // Interfața pentru proprietățile componentei Button
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {

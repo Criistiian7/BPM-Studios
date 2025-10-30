@@ -8,6 +8,9 @@ interface StudioTracksProps {
     tracks: Track[];
     studioName: string;
     loading: boolean;
+    studioId?: string;
+    currentUserId?: string;
+    currentUserName?: string;
 }
 
 /**
@@ -18,6 +21,9 @@ export const StudioTracks: React.FC<StudioTracksProps> = ({
     tracks,
     studioName,
     loading,
+    studioId,
+    currentUserId,
+    currentUserName,
 }) => {
     if (loading) {
         return (
@@ -76,6 +82,10 @@ export const StudioTracks: React.FC<StudioTracksProps> = ({
                                     genre={track.genre}
                                     status={track.status}
                                     uploadedBy={studioName}
+                                    uploadedById={studioId}
+                                    studioId={studioId}
+                                    currentUserId={currentUserId}
+                                    currentUserName={currentUserName}
                                     trackId={track.id}
                                     onEdit={() => {
                                         // Artiștii nu pot edita track-urile
