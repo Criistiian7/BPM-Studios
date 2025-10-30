@@ -8,7 +8,7 @@ import { FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
 import { slugify } from "../utils/slugify";
 import AudioPlayer from "../components/AudioPlayer";
 import { useAuth } from "../context/authContext";
-import { getInitials } from "../utils/formatters";
+import { getInitials, isProducer, isStudio } from "../utils/formatters";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { useTrackNavigation } from "../hooks/useTrackNavigation";
 
@@ -34,25 +34,13 @@ const UserProfile: React.FC = () => {
       try {
         const tracksRef = collection(db, "tracks");
 
-        // Fetch tracks where user is owner OR collaborator
+        // Fetch DOAR track-urile unde profilul este owner
         const ownerQuery = query(tracksRef, where("ownerId", "==", profile.uid));
         const ownerSnapshot = await getDocs(ownerQuery);
         const ownerTracks = ownerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-        // Fetch tracks where user is collaborator
-        const collaboratorQuery = query(tracksRef, where("collaborators", "array-contains", profile.uid));
-        const collaboratorSnapshot = await getDocs(collaboratorQuery);
-        const collaboratorTracks = collaboratorSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-        // Combine and deduplicate
-        const allTracksMap = new Map();
-        [...ownerTracks, ...collaboratorTracks].forEach(track => {
-          allTracksMap.set(track.id, track);
-        });
-        const tracks = Array.from(allTracksMap.values());
-
-        setUserTracks(tracks);
-        setTrackCount(tracks.length);
+        setUserTracks(ownerTracks);
+        setTrackCount(ownerTracks.length);
       } catch (error) {
         console.error("Error fetching tracks:", error);
       } finally {
@@ -264,20 +252,20 @@ const UserProfile: React.FC = () => {
               )}
 
               <div className="flex items-center gap-2 mb-3 flex-wrap">
-                <span className={`px-3 py-1 rounded-full text-sm font-medium ${profile.accountType === "studio"
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${isStudio(profile.accountType)
                   ? "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300"
-                  : profile.accountType === "producer"
+                  : isProducer(profile.accountType)
                     ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
                     : "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
                   }`}>
-                  {profile.accountType === "studio"
+                  {isStudio(profile.accountType)
                     ? "🏢 Studio"
-                    : profile.accountType === "producer"
+                    : isProducer(profile.accountType)
                       ? "🎛️ Producător"
                       : "🎤 Artist"}
                 </span>
 
-                {profile.accountType === "studio" && (
+                {isStudio(profile.accountType) && (
                   <div className="flex items-center gap-1 text-yellow-500">
                     <FiStar className="fill-current text-sm" />
                     <span className="text-sm font-semibold">{(profile.rating || 0).toFixed(1)}</span>
@@ -416,8 +404,9 @@ const UserProfile: React.FC = () => {
                         uploadedById={
                           (track as any).uploadedByStudio && (track as any).studioId
                             ? (track as any).studioId
-                            : (track as any).ownerId || profile?.uid
+                            : (track as any).ownerId || (track as any).userId || profile?.uid
                         }
+                        studioId={(track as any).uploadedByStudio && (track as any).studioId ? (track as any).studioId : undefined}
                         trackId={track.id}
                         currentUserId={currentUser?.id}
                         currentUserName={currentUser?.name}

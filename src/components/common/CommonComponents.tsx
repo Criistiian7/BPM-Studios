@@ -1,4 +1,4 @@
-import React, { ReactNode } from "react";
+import React, { type ReactNode } from "react";
 
 /**
  * Componenta Card - un container reutilizabil pentru conținut
@@ -65,7 +65,7 @@ export const Card: React.FC<CardProps> = ({
  * Standardizează stilurile pentru butoanele de acțiune
  */
 interface ActionButtonProps {
-    onClick: () => void;
+    onClick: (e?: React.MouseEvent<HTMLButtonElement>) => void;
     icon: ReactNode;
     variant: "primary" | "secondary" | "danger" | "success" | "warning";
     size?: "sm" | "md" | "lg";

@@ -10,6 +10,7 @@ import {
   updateDoc,
   onSnapshot,
   Timestamp,
+  type FieldValue,
 } from "firebase/firestore";
 import { db } from "../firebase";
 
@@ -19,8 +20,8 @@ export interface TrackRating {
   userName: string;
   trackOwnerId: string;
   rating: number;
-  createdAt: Timestamp | null;
-  updatedAt: Timestamp | null;
+  createdAt: Timestamp | FieldValue | null;
+  updatedAt: Timestamp | FieldValue | null;
 }
 
 /**
@@ -46,17 +47,27 @@ export async function saveTrackRating(
 
   const existingRating = await getDoc(ratingRef);
 
-  const ratingData: any = {
+  const ratingData: Partial<TrackRating> & {
+    trackId: string;
+    userId: string;
+    userName: string;
+    trackOwnerId: string;
+    rating: number;
+    updatedAt: ReturnType<typeof serverTimestamp>;
+    createdAt?: ReturnType<typeof serverTimestamp>;
+  } = {
     trackId,
     userId,
     userName,
     trackOwnerId,
     rating,
-    updatedAt: serverTimestamp(),
+    updatedAt: serverTimestamp() as ReturnType<typeof serverTimestamp>,
   };
 
   if (!existingRating.exists()) {
-    ratingData.createdAt = serverTimestamp();
+    ratingData.createdAt = serverTimestamp() as ReturnType<
+      typeof serverTimestamp
+    >;
   }
 
   await setDoc(ratingRef, ratingData, { merge: true });
@@ -158,7 +169,6 @@ export async function updateUserProfileRating(userId: string): Promise<void> {
     rating: parseFloat(profileRating.toFixed(2)),
     updatedAt: serverTimestamp(),
   });
-
 }
 
 /**
@@ -259,6 +269,35 @@ export async function isConnectedToTrackOwner(
 }
 
 /**
+ * Determină dacă utilizatorul are voie să dea rating unui track.
+ * Reguli: trebuie să fie conectat cu owner-ul track-ului SAU să fie membru al studio-ului track-ului.
+ */
+export async function isAllowedToRateTrack(
+  currentUserId: string,
+  trackOwnerId: string,
+  studioId?: string
+): Promise<boolean> {
+  // Nu poți da rating propriilor track-uri
+  if (currentUserId === trackOwnerId) return false;
+
+  // 1) Conexiune directă între user și owner
+  const connected = await isConnectedToTrackOwner(currentUserId, trackOwnerId);
+  if (connected) return true;
+
+  // 2) Membru în studio-ul track-ului (dacă studioId este furnizat)
+  if (studioId) {
+    const studioRef = doc(db, "studios", studioId);
+    const studioDoc = await getDoc(studioRef);
+    if (studioDoc.exists()) {
+      const memberIds: string[] = studioDoc.data().memberIds || [];
+      if (memberIds.includes(currentUserId)) return true;
+    }
+  }
+
+  return false;
+}
+
+/**
  * Listener în timp real pentru rating-urile unui track
  */
 export function subscribeToTrackRatings(
@@ -307,7 +346,6 @@ export function subscribeToUserProfileRating(
  */
 export async function syncAllStudioRatings(): Promise<void> {
   try {
-
     // Obține toate studio-urile
     const studiosRef = collection(db, "studios");
     const studiosSnapshot = await getDocs(studiosRef);
@@ -315,9 +353,6 @@ export async function syncAllStudioRatings(): Promise<void> {
     if (studiosSnapshot.empty) {
       return;
     }
-
-    let successCount = 0;
-    let errorCount = 0;
 
     // Pentru fiecare studio, actualizează rating-ul
     for (const studioDoc of studiosSnapshot.docs) {
@@ -327,7 +362,6 @@ export async function syncAllStudioRatings(): Promise<void> {
 
         if (!ownerId) {
           console.warn(`Studio ${studioDoc.id} has no ownerId, skipping...`);
-          errorCount++;
           continue;
         }
 
@@ -337,7 +371,6 @@ export async function syncAllStudioRatings(): Promise<void> {
 
         if (!userDoc.exists()) {
           console.warn(`Owner ${ownerId} not found for studio ${studioDoc.id}`);
-          errorCount++;
           continue;
         }
 
@@ -349,14 +382,10 @@ export async function syncAllStudioRatings(): Promise<void> {
           rating: parseFloat(ownerRating.toFixed(2)),
           updatedAt: serverTimestamp(),
         });
-
-        successCount++;
       } catch (error) {
         console.error(`Error syncing studio ${studioDoc.id}:`, error);
-        errorCount++;
       }
     }
-
   } catch (error) {
     console.error("Error in syncAllStudioRatings:", error);
     throw error;

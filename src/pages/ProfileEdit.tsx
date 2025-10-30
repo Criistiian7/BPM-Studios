@@ -9,7 +9,7 @@ import { FiArrowLeft, FiMail, FiUser, FiMapPin, FiPhone, FiMusic, FiSave, FiCame
 import { FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
 import type { UserProfile } from "../types/user";
 import { slugify } from "../utils/slugify";
-import { getInitials } from "../utils/formatters";
+import { getInitials, getAccountTypeLabel } from "../utils/formatters";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 
 const STORAGE_KEY = "bpm_profile_edit_form_data";
@@ -219,7 +219,7 @@ const ProfileEdit: React.FC = () => {
 
       // Șterge datele salvate din localStorage după salvare reușită
       localStorage.removeItem(STORAGE_KEY);
-      
+
       setMessage({ type: "success", text: "Profilul a fost salvat cu succes!" });
 
       // Reload page after 1.5 seconds to refresh user data
@@ -479,7 +479,7 @@ const ProfileEdit: React.FC = () => {
                     Tip cont
                   </p>
                   <p className="text-lg font-semibold text-gray-900 dark:text-white">
-                    {user.accountType === "producer" ? "Producător" : "Artist"}
+                    {getAccountTypeLabel(user.accountType)}
                   </p>
                 </div>
                 <div>
@@ -511,7 +511,7 @@ const ProfileEdit: React.FC = () => {
               </Link>
             </div>
           </form>
-      </div>
+        </div>
       </div>
     </div>
   );

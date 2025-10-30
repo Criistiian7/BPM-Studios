@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { FiUsers, FiMusic, FiMapPin, FiMail, FiPhone } from "react-icons/fi";
-import { Card, Avatar, ActionButton } from "../common/CommonComponents";
+import { FiUsers, FiMusic, FiMapPin, FiMail } from "react-icons/fi";
+import { Card, Avatar } from "../common/CommonComponents";
 import type { Studio as StudioType } from "../../types/studio";
 
 interface StudioCardProps {

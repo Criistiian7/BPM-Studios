@@ -284,7 +284,7 @@ const MyTracks: React.FC = () => {
               <div className="relative">
                 <input
                   type="file"
-                  accept="audio/*"
+                  accept="audio/mpeg,audio/mp3,audio/*"
                   onChange={handleFile}
                   className="w-full border border-slate-300 dark:border-slate-600 rounded-lg px-4 py-2.5 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-900/30 dark:file:text-blue-300 dark:hover:file:bg-blue-900/50 file:cursor-pointer cursor-pointer"
                   required
@@ -564,15 +564,15 @@ const MyTracks: React.FC = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
+      <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Piesele mele</h3>
         <button
           type="button"
           onClick={() => setShowUploadModal(true)}
-          className="p-3 text-gray-600 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-all"
+          className="p-2 -mt-0.5 text-gray-600 dark:text-gray-400 hover:text-emerald-700 dark:hover:text-emerald-300 hover:bg-emerald-500/15 dark:hover:bg-emerald-500/15 rounded-lg transition-all duration-200 hover:scale-110"
           title="Upload Track"
         >
-          <FiUpload className="text-xl" />
+          <FiUpload className="w-5 h-5" />
         </button>
       </div>
 
@@ -600,8 +600,9 @@ const MyTracks: React.FC = () => {
                   uploadedById={
                     (t as any).uploadedByStudio && (t as any).studioId
                       ? (t as any).studioId
-                      : (t as any).ownerId || user?.id
+                      : (t as any).ownerId || (t as any).userId || user?.id
                   }
+                  studioId={(t as any).uploadedByStudio && (t as any).studioId ? (t as any).studioId : undefined}
                   trackId={t.id}
                   currentUserId={user?.id}
                   currentUserName={user?.name}
@@ -827,7 +828,7 @@ const MyTracks: React.FC = () => {
                 <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors">
                   <input
                     type="file"
-                    accept="audio/*"
+                    accept="audio/mpeg,audio/mp3,audio/*"
                     onChange={(e) => setUploadAudioFile(e.target.files?.[0] || null)}
                     className="hidden"
                     id="upload-audio"

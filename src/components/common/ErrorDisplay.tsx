@@ -1,6 +1,8 @@
 import React from 'react';
 import { FiAlertCircle, FiX, FiWifi, FiShield, FiCheckCircle, FiDatabase } from 'react-icons/fi';
-import { AppError, ErrorType } from './useErrorHandler';
+import { AppError } from '../../utils/errorHandler';
+
+type ErrorType = 'network' | 'auth' | 'validation' | 'firebase' | 'unknown';
 
 // Interfața pentru proprietățile componentei ErrorDisplay
 interface ErrorDisplayProps {
@@ -86,28 +88,39 @@ export const ErrorDisplay: React.FC<ErrorDisplayProps> = ({
         }
     };
 
+    // Determine error type from error code
+    const getErrorType = (): ErrorType => {
+        if (error.code.includes('network') || error.code === 'NETWORK_ERROR') return 'network';
+        if (error.code.startsWith('auth/')) return 'auth';
+        if (error.code === 'VALIDATION_ERROR' || error.code.includes('validation')) return 'validation';
+        if (error.code.includes('permission') || error.code.includes('firebase')) return 'firebase';
+        return 'unknown';
+    };
+
+    const errorType = getErrorType();
+
     return (
-        <div className={`rounded-lg border p-4 ${getErrorBackgroundClass(error.type)} ${className}`}>
+        <div className={`rounded-lg border p-4 ${getErrorBackgroundClass(errorType)} ${className}`}>
             <div className="flex items-start gap-3">
                 {/* Iconița erorii */}
                 <div className="flex-shrink-0 mt-0.5">
-                    {getErrorIcon(error.type)}
+                    {getErrorIcon(errorType)}
                 </div>
 
                 {/* Conținutul erorii */}
                 <div className="flex-1 min-w-0">
                     {/* Titlul erorii */}
                     <h3 className="text-sm font-semibold text-red-800 dark:text-red-200 mb-1">
-                        {error.type === 'network' && 'Problemă de conexiune'}
-                        {error.type === 'auth' && 'Problemă de autentificare'}
-                        {error.type === 'validation' && 'Date invalide'}
-                        {error.type === 'firebase' && 'Problemă cu baza de date'}
-                        {error.type === 'unknown' && 'Eroare neașteptată'}
+                        {errorType === 'network' && 'Problemă de conexiune'}
+                        {errorType === 'auth' && 'Problemă de autentificare'}
+                        {errorType === 'validation' && 'Date invalide'}
+                        {errorType === 'firebase' && 'Problemă cu baza de date'}
+                        {errorType === 'unknown' && 'Eroare neașteptată'}
                     </h3>
 
                     {/* Mesajul erorii */}
                     <p className="text-sm text-red-700 dark:text-red-300 mb-2">
-                        {getFriendlyMessage(error.type)}
+                        {getFriendlyMessage(errorType)}
                     </p>
 
                     {/* Mesajul tehnic (doar în development) */}

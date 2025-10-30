@@ -1,9 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { UserProfile } from '../types/user';
 import { FaFacebook, FaInstagram, FaYoutube, FaMapMarkerAlt, FaMicrophone, FaEnvelope, FaStar } from 'react-icons/fa';
 import { FiX, FiUser } from 'react-icons/fi';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
+import { getAccountTypeLabel } from '../utils/formatters';
 
 interface UserProfileDetailsProps {
     user: UserProfile;
@@ -119,7 +120,7 @@ function UserProfileDetails({ user, onClose }: UserProfileDetailsProps) {
                             </h3>
                             <div className="flex items-center gap-2 mt-1">
                                 <span className="text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded-full font-medium">
-                                    {user.accountType === "producer" ? "Producător" : "Artist"}
+                                    {getAccountTypeLabel(user.accountType)}
                                 </span>
                                 {user.rating > 0 && (
                                     <div className="flex items-center gap-1 text-yellow-500">
