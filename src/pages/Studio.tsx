@@ -1899,7 +1899,7 @@ const Studio: React.FC = () => {
                         <div className="mx-auto w-24 h-24 bg-indigo-100 dark:bg-indigo-900/30 rounded-full flex items-center justify-center mb-6">
                             <FiPlus className="w-12 h-12 text-indigo-600 dark:text-indigo-400" />
                         </div>
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
+                        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4">
                             Creează-ți propriul Studio
                         </h1>
                         <p className="text-gray-600 dark:text-gray-400 mb-8">

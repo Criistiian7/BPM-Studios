@@ -257,9 +257,9 @@ const ProfileEdit: React.FC = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md">
           {/* Header */}
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+          <div className="p-4 sm:p-6 border-b border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                 Editare Profil
               </h2>
               <Link
@@ -274,7 +274,7 @@ const ProfileEdit: React.FC = () => {
 
           {/* Message Alert */}
           {message && (
-            <div className={`mx-6 mt-6 p-4 rounded-lg ${message.type === "success"
+            <div className={`mx-4 sm:mx-6 mt-6 p-4 rounded-lg ${message.type === "success"
               ? "bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-200 dark:border-green-800"
               : "bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800"
               }`}>
@@ -282,7 +282,7 @@ const ProfileEdit: React.FC = () => {
             </div>
           )}
 
-          <form onSubmit={handleSave} className="p-6 space-y-8">
+          <form onSubmit={handleSave} className="p-4 sm:p-6 space-y-6 sm:space-y-8">
             {/* Avatar Section */}
             <div className="flex flex-col items-center gap-4 pb-6 border-b border-gray-200 dark:border-gray-700">
               <div className="relative">
