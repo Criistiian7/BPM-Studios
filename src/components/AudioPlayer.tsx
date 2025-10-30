@@ -8,6 +8,7 @@ import { slugify } from "../utils/slugify";
 import { useNavigate } from "react-router-dom";
 import { formatTime } from "../utils/formatters";
 import { useTrackAudio } from "../context/globalAudioContext";
+import { logger } from "../utils/errorHandler";
 
 interface Collaborator {
     id: string;
@@ -141,7 +142,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
                         }
                     },
                     (error) => {
-                        console.error(`Error loading collaborator:`, error);
+                        logger.error(`Error loading collaborator:`, error);
                         loadedCount++;
                         // Even on error, update the list
                         if (loadedCount >= collaborators.length) {
@@ -152,7 +153,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
 
                 unsubscribers.push(unsubscribe);
             } catch (error) {
-                console.error(`Error setting up listener:`, error);
+                logger.error(`Error setting up listener:`, error);
             }
         });
 
@@ -181,7 +182,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
                     setCurrentRating(rating);
                 }
             } catch (error) {
-                console.error("Error checking rating permission:", error);
+                logger.error("Error checking rating permission:", error);
                 setCanRate(false);
             } finally {
                 setCheckingConnection(false);
@@ -321,7 +322,7 @@ const AudioPlayer: React.FC<AudioPlayerProps> = ({
             await saveTrackRating(trackId, currentUserId, currentUserName, uploadedById, rating);
             setCurrentRating(rating);
         } catch (error) {
-            console.error("Error saving rating:", error);
+            logger.error("Error saving rating:", error);
             throw error;
         }
     };

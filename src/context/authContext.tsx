@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -12,7 +12,7 @@ import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import type { AppUser, AccountType } from "../types/user";
 import { useNavigate, useLocation } from "react-router-dom";
 import { PUBLIC_ROUTES, ACCOUNT_TYPES } from "../constants";
-import { handleFirebaseError, useErrorHandler } from "../utils/errorHandler";
+import { handleFirebaseError, useErrorHandler, logger } from "../utils/errorHandler";
 
 // Tipul pentru contextul de autentificare
 type AuthContextType = {
@@ -190,7 +190,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
    * @param name - Numele utilizatorului (opțional)
    * @param accountType - Tipul de cont (artist, producer, studio)
    */
-  const register = async (
+  const register = useCallback(async (
     email: string,
     password: string,
     name?: string,
@@ -204,7 +204,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         // Actualizează profilul cu numele dacă este furnizat
         if (name) {
           await updateProfile(credentials.user, { displayName: name }).catch(() => {
-            console.warn("Nu s-a putut actualiza numele utilizatorului");
+            logger.warn("Nu s-a putut actualiza numele utilizatorului");
           });
         }
 
@@ -238,25 +238,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     } catch (error) {
       throw handleFirebaseError(error);
     }
-  };
+  }, []);
 
   /**
    * Funcția pentru autentificarea utilizatorului
    * @param email - Email-ul utilizatorului
    * @param password - Parola utilizatorului
    */
-  const login = async (email: string, password: string) => {
+  const login = useCallback(async (email: string, password: string) => {
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
       throw handleFirebaseError(error);
     }
-  };
+  }, []);
 
   /**
    * Funcția pentru deconectarea utilizatorului
    */
-  const logout = async () => {
+  const logout = useCallback(async () => {
     try {
       // Resetează starea utilizatorului înainte de logout pentru a preveni erorile Firestore
       setUser(null);
@@ -273,12 +273,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       setLoading(false);
       throw handleFirebaseError(error);
     }
-  };
+  }, [navigate]);
 
   /**
    * Funcția pentru actualizarea datelor utilizatorului
    */
-  const refreshUser = async () => {
+  const refreshUser = useCallback(async () => {
     if (user) {
       try {
         const userRef = doc(db, "users", user.id);
@@ -303,7 +303,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         handleError(error, 'AuthContext.refreshUser');
       }
     }
-  };
+  }, [user, handleError]);
 
   const value: AuthContextType = {
     user,

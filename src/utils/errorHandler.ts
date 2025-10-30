@@ -204,22 +204,28 @@ export const validateInput = {
 /**
  * Funcție pentru logging centralizat
  * Permite logging consistent în întreaga aplicație
+ * Automatically disables logging in production for better performance
  */
 export const logger = {
   info: (message: string, data?: any) => {
-    console.log(`[INFO] ${message}`, data);
+    if (import.meta.env.DEV) {
+      console.log(`[INFO] ${message}`, data);
+    }
   },
 
   warn: (message: string, data?: any) => {
-    console.warn(`[WARN] ${message}`, data);
+    if (import.meta.env.DEV) {
+      console.warn(`[WARN] ${message}`, data);
+    }
   },
 
   error: (message: string, error?: any) => {
+    // Always log errors, even in production
     console.error(`[ERROR] ${message}`, error);
   },
 
   debug: (message: string, data?: any) => {
-    if (process.env.NODE_ENV === "development") {
+    if (import.meta.env.DEV) {
       console.debug(`[DEBUG] ${message}`, data);
     }
   },

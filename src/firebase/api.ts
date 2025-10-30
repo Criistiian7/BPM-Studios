@@ -110,6 +110,6 @@ export async function fetchRequestForUser(userId: string) {
 }
 
 export async function acceptRequestFirestore(requestId: string) {
-  await deleteDoc(doc(db, "request", requestId));
+  await deleteDoc(doc(db, "requests", requestId));
   return { succes: true };
 }

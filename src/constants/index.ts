@@ -65,6 +65,8 @@ export const REQUEST_TYPES = {
 } as const;
 
 // Configurații pentru localStorage keys
+// NOTE: Storage keys are now defined in utils/localStorage.ts
+// This is kept for backward compatibility
 export const STORAGE_KEYS = {
   THEME: "theme",
   REGISTER_FORM: "bpm_register_form_data",

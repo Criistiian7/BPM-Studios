@@ -878,4 +878,4 @@ function Community() {
   );
 }
 
-export default Community;
+export default React.memo(Community);

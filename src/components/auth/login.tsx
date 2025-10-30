@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../../context/authContext";
+import { storage, STORAGE_KEYS } from "../../utils/localStorage";
 
 type Props = { onSwitchToRegister: () => void };
-
-const STORAGE_KEY = "bpm_login_email";
 
 const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
   const { login } = useAuth();
@@ -12,7 +11,7 @@ const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
 
   // Încarcă email-ul salvat la inițializare
   useEffect(() => {
-    const savedEmail = localStorage.getItem(STORAGE_KEY);
+    const savedEmail = storage.get(STORAGE_KEYS.LOGIN_EMAIL, "");
     if (savedEmail) {
       setEmail(savedEmail);
     }
@@ -21,7 +20,7 @@ const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
   // Salvează email-ul la fiecare modificare
   useEffect(() => {
     if (email) {
-      localStorage.setItem(STORAGE_KEY, email);
+      storage.set(STORAGE_KEYS.LOGIN_EMAIL, email);
     }
   }, [email]);
 
@@ -35,7 +34,7 @@ const Login: React.FC<Props> = ({ onSwitchToRegister }) => {
     try {
       await login(emailValue, password);
       // Șterge email-ul salvat după login reușit
-      localStorage.removeItem(STORAGE_KEY);
+      storage.remove(STORAGE_KEYS.LOGIN_EMAIL);
     } catch (err: unknown) {
       const errorCode = (err as { code?: string })?.code || "";
 
