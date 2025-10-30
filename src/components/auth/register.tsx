@@ -6,12 +6,12 @@ import type { AccountType } from "../../types/user";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import { auth } from "../../firebase";
+import { storage, STORAGE_KEYS } from "../../utils/localStorage";
+import { logger } from "../../utils/errorHandler";
 
 type Props = {
   onSwitchToLogin: () => void;
 };
-
-const STORAGE_KEY = "bpm_register_form_data";
 
 const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
   const { register: registerUser } = useAuth();
@@ -21,15 +21,7 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
 
   // Încarcă datele salvate din localStorage la inițializare
   const getInitialFormData = () => {
-    try {
-      const savedData = localStorage.getItem(STORAGE_KEY);
-      if (savedData) {
-        return JSON.parse(savedData);
-      }
-    } catch (err) {
-      console.error("Error loading saved form data:", err);
-    }
-    return {
+    const defaultData = {
       firstName: "",
       lastName: "",
       email: "",
@@ -37,6 +29,14 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
       confirmPassword: "",
       accountType: "artist" as AccountType,
     };
+    
+    try {
+      const savedData = storage.get(STORAGE_KEYS.REGISTER_FORM, defaultData);
+      return savedData;
+    } catch (err) {
+      logger.error("Error loading saved form data:", err);
+      return defaultData;
+    }
   };
 
   const [formData, setFormData] = useState(getInitialFormData());
@@ -48,7 +48,7 @@ const Register: React.FC<Props> = ({ onSwitchToLogin }) => {
       password: "", // Nu salvăm parolele în localStorage pentru securitate
       confirmPassword: "",
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(dataToSave));
+    storage.set(STORAGE_KEYS.REGISTER_FORM, dataToSave);
   }, [formData]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {

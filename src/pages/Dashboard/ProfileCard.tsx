@@ -4,7 +4,7 @@ import { FiStar, FiMail, FiMapPin, FiPhone } from "react-icons/fi";
 import { FaFacebook, FaInstagram, FaYoutube, FaMicrophone } from "react-icons/fa";
 import { collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
-import { getAccountTypeLabel } from "../../utils/formatters";
+import { getAccountTypeLabel, getInitials } from "../../utils/formatters";
 
 const ProfileCard: React.FC = () => {
   const { user } = useAuth();
@@ -43,15 +43,6 @@ const ProfileCard: React.FC = () => {
   }, [user]);
 
   if (!user) return null;
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .slice(0, 2)
-      .join("")
-      .toUpperCase();
-  };
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden transition-colors">
@@ -238,4 +229,4 @@ const ProfileCard: React.FC = () => {
   );
 };
 
-export default ProfileCard;
+export default React.memo(ProfileCard);

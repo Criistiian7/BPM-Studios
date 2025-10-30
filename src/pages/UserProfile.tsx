@@ -422,10 +422,12 @@ const UserProfile: React.FC = () => {
                           }
                         }}
                         onEdit={currentUser && currentUser.id === profile?.uid ? () => {
-                          // TODO: Implementează logica de editare
+                          // Navigate to profile edit page
+                          navigate("/profile-edit");
                         } : undefined}
-                        onDelete={currentUser && currentUser.id === profile?.uid ? () => {
-                          // TODO: Implementează logica de ștergere
+                        onDelete={currentUser && currentUser.id === profile?.uid ? async () => {
+                          // Note: Track deletion should be handled in MyTracks component
+                          // This is user profile view, not track management
                         } : undefined}
                         onNext={(wasPlaying) => handleNext(index, wasPlaying)}
                         onPrevious={(wasPlaying) => handlePrevious(index, wasPlaying)}

@@ -11,8 +11,8 @@ import type { UserProfile } from "../types/user";
 import { slugify } from "../utils/slugify";
 import { getInitials, getAccountTypeLabel } from "../utils/formatters";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
-
-const STORAGE_KEY = "bpm_profile_edit_form_data";
+import { storage as localStorage, STORAGE_KEYS } from "../utils/localStorage";
+import { logger } from "../utils/errorHandler";
 
 const ProfileEdit: React.FC = () => {
   const { user, loading } = useAuth();
@@ -35,22 +35,32 @@ const ProfileEdit: React.FC = () => {
 
   // Încarcă datele salvate din localStorage
   useEffect(() => {
-    const savedData = localStorage.getItem(STORAGE_KEY);
-    if (savedData && !dataLoaded) {
+    if (!dataLoaded) {
       try {
-        const parsed = JSON.parse(savedData);
-        setFirstName(parsed.firstName || "");
-        setLastName(parsed.lastName || "");
-        setDescription(parsed.description || "");
-        setGenre(parsed.genre || "");
-        setLocation(parsed.location || "");
-        setPhoneNumber(parsed.phoneNumber || "");
-        setFacebook(parsed.facebook || "");
-        setInstagram(parsed.instagram || "");
-        setYoutube(parsed.youtube || "");
+        const savedData = localStorage.get(STORAGE_KEYS.PROFILE_EDIT_FORM, {
+          firstName: "",
+          lastName: "",
+          description: "",
+          genre: "",
+          location: "",
+          phoneNumber: "",
+          facebook: "",
+          instagram: "",
+          youtube: "",
+        });
+        
+        setFirstName(savedData.firstName || "");
+        setLastName(savedData.lastName || "");
+        setDescription(savedData.description || "");
+        setGenre(savedData.genre || "");
+        setLocation(savedData.location || "");
+        setPhoneNumber(savedData.phoneNumber || "");
+        setFacebook(savedData.facebook || "");
+        setInstagram(savedData.instagram || "");
+        setYoutube(savedData.youtube || "");
         setDataLoaded(true);
       } catch (error) {
-        console.error("Error loading saved form data:", error);
+        logger.error("Error loading saved form data:", error);
       }
     }
   }, [dataLoaded]);
@@ -67,8 +77,7 @@ const ProfileEdit: React.FC = () => {
           const data = snap.data() as UserProfile;
 
           // Doar încarcă datele din Firestore dacă nu există date salvate în localStorage
-          const savedData = localStorage.getItem(STORAGE_KEY);
-          if (savedData) return; // Skip loading from Firestore if localStorage has data
+          if (localStorage.has(STORAGE_KEYS.PROFILE_EDIT_FORM)) return; // Skip loading from Firestore if localStorage has data
 
           // Parse displayName from Firestore
           const fullName = data.displayName || "";
@@ -92,7 +101,7 @@ const ProfileEdit: React.FC = () => {
           setYoutube(data.socialLinks?.youtube || "");
         }
       } catch (error) {
-        console.error("Error loading profile:", error);
+        logger.error("Error loading profile:", error);
       }
     };
 
@@ -113,7 +122,7 @@ const ProfileEdit: React.FC = () => {
         instagram,
         youtube,
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(formData));
+      localStorage.set(STORAGE_KEYS.PROFILE_EDIT_FORM, formData);
     }
   }, [firstName, lastName, description, genre, location, phoneNumber, facebook, instagram, youtube, dataLoaded]);
 
@@ -155,7 +164,7 @@ const ProfileEdit: React.FC = () => {
 
       setMessage({ type: "success", text: "Imaginea a fost încărcată cu succes!" });
     } catch (error: any) {
-      console.error("Error uploading image:", error);
+      logger.error("Error uploading image:", error);
       setMessage({
         type: "error",
         text: `Eroare la încărcarea imaginii: ${error.message || 'Încearcă din nou'}`
@@ -227,7 +236,7 @@ const ProfileEdit: React.FC = () => {
         window.location.reload();
       }, 1500);
     } catch (error: any) {
-      console.error("Error saving profile:", error);
+      logger.error("Error saving profile:", error);
       setMessage({
         type: "error",
         text: `Eroare la salvarea profilului: ${error.message || 'Încearcă din nou'}`

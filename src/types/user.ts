@@ -1,10 +1,7 @@
 // Tipurile de conturi disponibile în aplicație
-export type AccountType =
-  | "producer"
-  | "Producer"
-  | "artist"
-  | "Artist"
-  | "studio";
+// Note: Using lowercase for consistency
+// normalizeAccountType() in formatters.ts handles case-insensitive conversion
+export type AccountType = "producer" | "artist" | "studio";
 
 // Interfața pentru profilul utilizatorului în Firestore
 export interface UserProfile {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/authContext";
 import { FiUser, FiUsers, FiMic, FiSun, FiMoon, FiSettings, FiLogOut, FiMenu, FiX } from "react-icons/fi";
-import { getInitials, isProducer } from "../../utils/formatters";
+import { getInitials, isProducer, isArtist } from "../../utils/formatters";
 
 const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -129,7 +129,7 @@ const Navbar: React.FC = () => {
                 )}
 
                 {/* Butonul Studio Connect - vizibil pentru artiști și producători */}
-                {(isProducer(user.accountType) || user.accountType === "artist" || user.accountType === "Artist") && (
+                {(isProducer(user.accountType) || isArtist(user.accountType)) && (
                   <Link to="/studio-connect" className={navLinkClass("/studio-connect")}>
                     <FiMic className="text-lg" />
                     <span>Studio Connect</span>
@@ -294,7 +294,7 @@ const Navbar: React.FC = () => {
                   )}
 
                   {/* Butonul Studio Connect - vizibil pentru artiști și producători */}
-                  {(isProducer(user.accountType) || user.accountType === "artist" || user.accountType === "Artist") && (
+                  {(isProducer(user.accountType) || isArtist(user.accountType)) && (
                     <Link
                       to="/studio-connect"
                       onClick={closeMobileMenu}
@@ -317,4 +317,4 @@ const Navbar: React.FC = () => {
   );
 };
 
-export default Navbar;
+export default React.memo(Navbar);
