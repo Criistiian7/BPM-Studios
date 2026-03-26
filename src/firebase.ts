@@ -2,6 +2,7 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
+import { getAnalytics, isSupported } from "firebase/analytics";
 import { getStorage } from "firebase/storage";
 
 // Config-ul tău de la Firebase Console
@@ -23,4 +24,7 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const firestore = getFirestore(app);
 export const storage = getStorage(app);
+export const analytics = isSupported().then((supported) =>
+  supported ? getAnalytics(app) : null
+);
 export default app;

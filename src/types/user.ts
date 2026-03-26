@@ -12,6 +12,7 @@ export interface UserProfile {
   photoURL: string | null; // URL-ul fotografiei de profil
   description: string; // Descrierea utilizatorului
   rating: number; // Rating-ul mediu al utilizatorului
+  totalViews?: number; // Numărul total de vizualizări ale profilului
   accountType: AccountType; // Tipul de cont (artist, producer, studio)
   genre: any; // Genul muzical preferat
 

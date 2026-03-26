@@ -23,8 +23,14 @@ import type { Track } from "../types/track";
 import type { UserProfile } from "../types/user";
 import { SPECIAL_USERS } from "../constants";
 import { normalizeAccountType } from "../utils/formatters";
-import { FiHome } from "react-icons/fi";
+import { FiHome, FiEye } from "react-icons/fi";
 import { slugify } from "../utils/slugify";
+
+const formatViews = (value: number): string => {
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
+    return value.toString();
+};
 
 /**
  * Hook pentru gestionarea studio-urilor
@@ -40,6 +46,24 @@ const useStudioConnect = () => {
     const [studioTracks, setStudioTracks] = useState<Track[]>([]);
     const [studioMembers, setStudioMembers] = useState<UserProfile[]>([]);
     const [loadingDetails, setLoadingDetails] = useState(false);
+    const [selectedStudioViews, setSelectedStudioViews] = useState<number>(0);
+
+    useEffect(() => {
+        if (!selectedStudio?.id) return;
+
+        const unsub = onSnapshot(
+            doc(db, "studios", selectedStudio.id),
+            (snap) => {
+                const data = snap.data();
+                setSelectedStudioViews((data as any)?.totalViews ?? 0);
+            },
+            (err) => {
+                console.error("Error listening to studio totalViews:", err);
+            }
+        );
+
+        return () => unsub();
+    }, [selectedStudio?.id]);
 
     /**
      * Adaugă utilizatorul curent la studio-urile unde ID-ul corect este membru
@@ -355,6 +379,7 @@ const useStudioConnect = () => {
         studioTracks,
         studioMembers,
         loadingDetails,
+        selectedStudioViews,
         setSelectedStudio,
     };
 };
@@ -373,6 +398,7 @@ const StudioConnect: React.FC = () => {
         studioTracks,
         studioMembers,
         loadingDetails,
+        selectedStudioViews,
         setSelectedStudio,
     } = useStudioConnect();
 
@@ -573,6 +599,27 @@ const StudioConnect: React.FC = () => {
                     {/* Right Side - Studio Details */}
                     {selectedStudio && (
                         <div className="space-y-6 xl:col-span-2">
+                            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-5">
+                                <div className="flex items-center justify-between gap-4">
+                                    <div>
+                                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">
+                                            {selectedStudio.name}
+                                        </h2>
+                                        {selectedStudio.description && (
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                                                {selectedStudio.description}
+                                            </p>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-2 flex-wrap justify-end">
+                                        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200">
+                                            <FiEye className="text-sm" />
+                                            {formatViews(selectedStudioViews)} vizualizări
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
                             {isProducerUser && selectedStudio.ownerId === user.id && (
                                 <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
                                     <p className="text-sm text-blue-800 dark:text-blue-300">
