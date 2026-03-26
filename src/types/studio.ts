@@ -25,6 +25,7 @@ export interface Studio {
   memberIds: string[]; // Array cu ID-urile membrilor
   trackCount: number; // Numărul de track-uri din studio
   rating?: number; // Rating-ul mediu al studio-ului
+  totalViews?: number; // Numărul total de vizualizări ale profilului
 
   // Timestamps
   createdAt: string; // Data creării

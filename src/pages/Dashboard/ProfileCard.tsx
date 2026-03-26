@@ -1,16 +1,23 @@
 import React from "react";
 import { useAuth } from "../../context/authContext";
-import { FiStar, FiMail, FiMapPin, FiPhone } from "react-icons/fi";
+import { FiStar, FiMail, FiMapPin, FiPhone, FiEye } from "react-icons/fi";
 import { FaFacebook, FaInstagram, FaYoutube, FaMicrophone } from "react-icons/fa";
-import { collection, query, where, getDocs } from "firebase/firestore";
+import { collection, query, where, getDocs, doc, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase";
 import { getAccountTypeLabel, getInitials } from "../../utils/formatters";
+
+const formatViews = (value: number): string => {
+  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
+  return value.toString();
+};
 
 const ProfileCard: React.FC = () => {
   const { user } = useAuth();
   const [trackCount, setTrackCount] = React.useState<number>(0);
   const [projectCount, setProjectCount] = React.useState<number>(0);
   const [loadingStats, setLoadingStats] = React.useState(true);
+  const [totalViews, setTotalViews] = React.useState<number>(0);
 
   React.useEffect(() => {
     if (!user) return;
@@ -42,6 +49,22 @@ const ProfileCard: React.FC = () => {
     fetchTrackStats();
   }, [user]);
 
+  React.useEffect(() => {
+    if (!user) return;
+    const userRef = doc(db, "users", user.id);
+    const unsub = onSnapshot(
+      userRef,
+      (snap) => {
+        const data = snap.data();
+        setTotalViews((data as any)?.totalViews ?? 0);
+      },
+      (err) => {
+        console.error("Error listening to totalViews:", err);
+      }
+    );
+    return () => unsub();
+  }, [user]);
+
   if (!user) return null;
 
   return (
@@ -71,6 +94,10 @@ const ProfileCard: React.FC = () => {
               <span className="inline-flex items-center gap-1 text-white bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
                 <FiStar className="fill-current text-yellow-300" />
                 {user.rating.toFixed(1)}
+              </span>
+              <span className="inline-flex items-center gap-1 text-white bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
+                <FiEye className="text-sm" />
+                {formatViews(totalViews)}
               </span>
             </div>
           </div>

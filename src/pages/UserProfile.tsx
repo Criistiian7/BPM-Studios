@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase";
 import { collection, getDocs, query, where } from "firebase/firestore";
 import type { UserProfile as UserProfileType } from "../types/user";
-import { FiArrowLeft, FiMapPin, FiMail, FiPhone, FiStar } from "react-icons/fi";
+import { FiArrowLeft, FiMapPin, FiMail, FiPhone, FiStar, FiEye } from "react-icons/fi";
 import { FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
 import { slugify } from "../utils/slugify";
 import AudioPlayer from "../components/AudioPlayer";
@@ -11,11 +11,18 @@ import { useAuth } from "../context/authContext";
 import { getInitials, isProducer, isStudio } from "../utils/formatters";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { useTrackNavigation } from "../hooks/useTrackNavigation";
+import { trackView } from "../firebase/analytics";
+
+const formatViews = (value: number): string => {
+  if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+  if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
+  return value.toString();
+};
 
 const UserProfile: React.FC = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
-  const { user: currentUser } = useAuth();
+  const { user: currentUser, loading: authLoading } = useAuth();
   const [profile, setProfile] = useState<UserProfileType | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,8 +59,21 @@ const UserProfile: React.FC = () => {
   }, [profile?.uid]);
 
   useEffect(() => {
+    if (!currentUser?.id) return;
+    if (!profile?.uid) return;
+    if (currentUser?.id === profile.uid) return;
+
+    const entityType = profile.accountType === "studio" ? "studio" : "artist";
+    trackView(currentUser.id, entityType, profile.uid).catch((err) => {
+      console.error("Error tracking profile view:", err);
+    });
+  }, [currentUser?.id, profile?.uid, profile?.accountType]);
+
+  useEffect(() => {
     const fetchProfile = async () => {
       if (!slug) return;
+      if (authLoading) return;
+      if (!currentUser?.id) return;
 
       setLoading(true);
       setError(null);
@@ -66,7 +86,10 @@ const UserProfile: React.FC = () => {
 
         if (!slugSnapshot.empty) {
           const userData = slugSnapshot.docs[0].data() as UserProfileType;
-          setProfile(userData);
+          setProfile({
+            ...userData,
+            totalViews: (userData as any).totalViews ?? 0,
+          });
           setLoading(false);
           return;
         }
@@ -89,6 +112,7 @@ const UserProfile: React.FC = () => {
             location: studioData.location || "",
             genre: studioData.genre || "",
             rating: studioData.rating || 0,
+            totalViews: studioData.totalViews || 0,
             socialLinks: studioData.socialLinks || {},
             statistics: studioData.statistics || { tracksUploaded: 0, projectsCompleted: 0 },
             memberSince: studioData.createdAt || "",
@@ -115,7 +139,8 @@ const UserProfile: React.FC = () => {
           if (generatedSlug === slug) {
             setProfile({
               uid: docSnapshot.id,
-              ...userData
+              ...userData,
+              totalViews: (userData as any).totalViews ?? 0,
             } as UserProfileType);
             setLoading(false);
             return;
@@ -144,6 +169,7 @@ const UserProfile: React.FC = () => {
               location: studioData.location || "",
               genre: studioData.genre || "",
               rating: studioData.rating || 0,
+              totalViews: studioData.totalViews || 0,
               socialLinks: studioData.socialLinks || {},
               statistics: studioData.statistics || { tracksUploaded: 0, projectsCompleted: 0 },
               memberSince: studioData.createdAt || "",
@@ -278,6 +304,13 @@ const UserProfile: React.FC = () => {
                     <span className="text-sm font-semibold">{profile.rating.toFixed(1)}</span>
                   </div>
                 )}
+
+                <div className="flex items-center gap-1 text-gray-600 dark:text-gray-300">
+                  <FiEye className="text-sm" />
+                  <span className="text-sm font-semibold">
+                    {formatViews(profile.totalViews ?? 0)} vizualizări
+                  </span>
+                </div>
               </div>
 
               {profile.description && (

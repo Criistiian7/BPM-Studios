@@ -30,6 +30,7 @@ import {
     FiStar,
     FiTrash2,
     FiCheck,
+    FiEye,
 } from "react-icons/fi";
 import { FaFacebook, FaInstagram, FaYoutube } from "react-icons/fa";
 import AudioPlayer from "../components/AudioPlayer";
@@ -57,6 +58,12 @@ const normalizeUrl = (url: string): string => {
         return trimmed;
     }
     return `https://${trimmed}`;
+};
+
+const formatViews = (value: number): string => {
+    if (value >= 1000000) return `${(value / 1000000).toFixed(1)}M`;
+    if (value >= 1000) return `${(value / 1000).toFixed(1)}k`;
+    return value.toString();
 };
 
 /**
@@ -759,6 +766,10 @@ const StudioHeader: React.FC<StudioHeaderProps> = ({
                             <span className="inline-flex items-center gap-1 text-white bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
                                 <FiStar className="fill-current text-yellow-300" />
                                 {studio.rating ? studio.rating.toFixed(1) : "0.0"}
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-white bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium">
+                                <FiEye className="text-sm" />
+                                {formatViews((studio as any).totalViews ?? 0)}
                             </span>
                         </div>
                     </div>
